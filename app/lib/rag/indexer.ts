@@ -9,6 +9,7 @@ import { listFolders } from '../services/bookmarks';
 import * as store from '../services/vectorStore';
 import { embed } from './embedderClient';
 import { folderRepresentativeText, textHash } from './folderText';
+import { throwIfCancelled } from '../shared/cancel';
 import type { VectorEntry } from '../shared/types';
 
 const BATCH = 16;
@@ -57,6 +58,7 @@ export async function buildIndex(
   const total = toEmbed.length;
   let done = 0;
   for (let i = 0; i < toEmbed.length; i += BATCH) {
+    throwIfCancelled();
     const chunk = toEmbed.slice(i, i + BATCH);
     const vectors = await embed(chunk.map((c) => c.text));
     const entries: VectorEntry[] = chunk.map((c, j) => ({
@@ -77,6 +79,14 @@ export async function buildIndex(
 /** True if the index has at least one folder entry. */
 export async function isIndexed(): Promise<boolean> {
   return (await store.count('folder')) > 0;
+}
+
+/** Wipe the vector store and rebuild the folder index from scratch. */
+export async function rebuildIndex(
+  onProgress?: (p: BuildProgress) => void,
+): Promise<{ embedded: number; skipped: number; removed: number }> {
+  await store.clear();
+  return buildIndex(onProgress);
 }
 
 /** Re-embed a single folder (used by incremental updates). */

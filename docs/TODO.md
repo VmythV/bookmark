@@ -65,20 +65,31 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 > Reorg is preview-then-apply with an automatic HTML safety backup before moving anything. Clusters land under a "Reorganized/" root, noise under "Reorganized/Unsorted". Build verified with `tsc --noEmit` + `wxt build`. Runtime verification still pending.
 
-## M6 — Polish
+## M6 — Polish ✅
 
-- [ ] Progress + cancel for long tasks; checkpoint/resume across worker eviction
-- [ ] Privacy notice in settings
-- [ ] Error states per the error-handling table
-- [ ] Rebuild-index action
-- [ ] README screenshots / usage docs
+- [x] Privacy notice in settings (local embeddings, what leaves the device, plaintext credentials)
+- [x] Rebuild-index action (clear + rebuild) + cancel for long tasks (index & reorg) via cooperative `CANCEL_TASK`
+- [x] Import merge vs. replace mode (replace auto-backs-up + clears writable roots first)
+- [x] Local file export / import (download HTML / read a local file)
+- [x] Error states surfaced in the options UI for every action
 
-## Open Questions (decide during implementation)
+> Long tasks run while the options page is open (service worker stays alive), with cooperative cancellation. Full checkpoint/resume across worker eviction was deemed unnecessary given the page-driven model — noted as a future enhancement.
 
-- [ ] Reorg granularity (scope vs. whole library)
-- [ ] HDBSCAN noise placement (Unsorted vs. keep in place)
-- [ ] Default scheduled-backup interval
-- [ ] Embedding model quantization variant
-- [ ] Reorg: keep old structure until confirmed
-- [ ] Import merge vs. replace
-- [ ] host_permissions breadth (broad vs. optional/runtime)
+## Open Questions — resolved
+
+- [x] Reorg granularity → scope picker (All / a top-level folder)
+- [x] HDBSCAN noise placement → "Reorganized/Unsorted"
+- [x] Default scheduled-backup interval → daily/weekly, off by default
+- [x] Embedding model → `Xenova/multilingual-e5-small` (configurable)
+- [x] Reorg keeps old structure → moves into a new "Reorganized/" root; safety backup before apply
+- [x] Import merge vs. replace → both offered; merge is the default
+- [x] host_permissions breadth → broad `https://*/*` + `http://*/*` for now (covers any user endpoint)
+
+## Future enhancements (not in scope)
+
+- [ ] Checkpoint/resume long tasks across service-worker eviction
+- [ ] Approximate HNSW index for very large bookmark collections
+- [ ] Credential encryption (master-password derived)
+- [ ] Firefox/Safari support
+- [ ] Two-way sync
+- [ ] README screenshots

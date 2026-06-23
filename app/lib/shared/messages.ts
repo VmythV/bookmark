@@ -69,9 +69,34 @@ export interface BackupImportMsg {
   type: 'BACKUP_IMPORT';
   /** Optional inline HTML (e.g. from a local file); otherwise pull from remote. */
   html?: string;
+  /** 'merge' (default, non-destructive) or 'replace' (destructive, auto-backed-up). */
+  mode?: 'merge' | 'replace';
 }
 export interface BackupImportRes {
   created: number;
+}
+
+export interface ExportHtmlMsg {
+  type: 'EXPORT_HTML';
+}
+export interface ExportHtmlRes {
+  html: string;
+}
+
+export interface IndexRebuildMsg {
+  type: 'INDEX_REBUILD';
+}
+export interface IndexRebuildRes {
+  embedded: number;
+  skipped: number;
+  removed: number;
+}
+
+export interface CancelTaskMsg {
+  type: 'CANCEL_TASK';
+}
+export interface CancelTaskRes {
+  ok: true;
 }
 
 export interface ScheduleSyncMsg {
@@ -111,7 +136,10 @@ export type RequestMessage =
   | BackupImportMsg
   | ScheduleSyncMsg
   | ReorgBuildMsg
-  | ReorgApplyMsg;
+  | ReorgApplyMsg
+  | ExportHtmlMsg
+  | IndexRebuildMsg
+  | CancelTaskMsg;
 
 /** Maps each message type to its response shape. */
 export interface ResponseMap {
@@ -126,6 +154,9 @@ export interface ResponseMap {
   SCHEDULE_SYNC: ScheduleSyncRes;
   REORG_BUILD_PLAN: ReorgBuildRes;
   REORG_APPLY: ReorgApplyRes;
+  EXPORT_HTML: ExportHtmlRes;
+  INDEX_REBUILD: IndexRebuildRes;
+  CANCEL_TASK: CancelTaskRes;
 }
 
 /**

@@ -42,6 +42,11 @@ async function load(): Promise<void> {
   $('backupNow').addEventListener('click', () => void runBackup('BACKUP_NOW'));
   $('backupTest').addEventListener('click', () => void runBackup('BACKUP_TEST'));
   $('backupImport').addEventListener('click', () => void runImport());
+  $('exportFile').addEventListener('click', () => void exportToFile());
+  $('importFile').addEventListener('click', () =>
+    $<HTMLInputElement>('importFileInput').click(),
+  );
+  $('importFileInput').addEventListener('change', (e) => void onFilePicked(e));
   await initIndexSection();
   await initReorgSection();
 }
@@ -54,7 +59,11 @@ function syncTargetFields(): void {
 
 async function initIndexSection(): Promise<void> {
   await refreshIndexStatus();
-  $('buildIndex').addEventListener('click', () => void buildIndex());
+  $('buildIndex').addEventListener('click', () => void buildIndex(false));
+  $('rebuildIndex').addEventListener('click', () => void buildIndex(true));
+  $('cancelTask').addEventListener('click', () => {
+    void sendMessage({ type: 'CANCEL_TASK' });
+  });
   chrome.runtime.onMessage.addListener(
     (msg: { target?: string; done?: number; total?: number }) => {
       if (msg?.target !== 'index-progress') return;
@@ -74,22 +83,25 @@ async function refreshIndexStatus(): Promise<void> {
     : 'Not indexed yet. Build the index to enable smart recommendations.';
 }
 
-async function buildIndex(): Promise<void> {
-  const btn = $<HTMLButtonElement>('buildIndex');
+async function buildIndex(rebuild: boolean): Promise<void> {
+  const btn = $<HTMLButtonElement>(rebuild ? 'rebuildIndex' : 'buildIndex');
+  const label = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Building…';
+  btn.textContent = rebuild ? 'Rebuilding…' : 'Building…';
   $('indexProgress').hidden = false;
+  $('cancelTask').hidden = false;
   try {
-    const res = await sendMessage({ type: 'INDEX_BUILD' });
+    const res = await sendMessage({ type: rebuild ? 'INDEX_REBUILD' : 'INDEX_BUILD' });
     showStatus(
-      `Index built: ${res.embedded} embedded, ${res.skipped} skipped, ${res.removed} removed.`,
+      `Index ${rebuild ? 'rebuilt' : 'updated'}: ${res.embedded} embedded, ${res.skipped} skipped, ${res.removed} removed.`,
     );
     await refreshIndexStatus();
   } catch (err) {
     showStatus(errMsg(err));
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Build / rebuild index';
+    btn.textContent = label;
+    $('cancelTask').hidden = true;
   }
 }
 
@@ -148,11 +160,51 @@ async function runBackup(type: 'BACKUP_NOW' | 'BACKUP_TEST'): Promise<void> {
 
 async function runImport(): Promise<void> {
   await setConfig({ backup: collectBackup() });
+  const mode = $<HTMLSelectElement>('importMode').value as 'merge' | 'replace';
+  if (mode === 'replace' && !confirm('Replace mode clears existing bookmarks (a backup is taken first). Continue?')) {
+    return;
+  }
   try {
-    const res = await sendMessage({ type: 'BACKUP_IMPORT' });
+    const res = await sendMessage({ type: 'BACKUP_IMPORT', mode });
     showStatus(`Imported ${res.created} bookmarks ✅`);
   } catch (err) {
     showStatus(errMsg(err));
+  }
+}
+
+async function exportToFile(): Promise<void> {
+  try {
+    const { html } = await sendMessage({ type: 'EXPORT_HTML' });
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bookmarks.html';
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus('Exported to file ✅');
+  } catch (err) {
+    showStatus(errMsg(err));
+  }
+}
+
+async function onFilePicked(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  const mode = $<HTMLSelectElement>('importMode').value as 'merge' | 'replace';
+  if (mode === 'replace' && !confirm('Replace mode clears existing bookmarks (a backup is taken first). Continue?')) {
+    input.value = '';
+    return;
+  }
+  try {
+    const html = await file.text();
+    const res = await sendMessage({ type: 'BACKUP_IMPORT', html, mode });
+    showStatus(`Imported ${res.created} bookmarks from file ✅`);
+  } catch (err) {
+    showStatus(errMsg(err));
+  } finally {
+    input.value = '';
   }
 }
 
@@ -176,6 +228,9 @@ async function initReorgSection(): Promise<void> {
 
   $('reorgBuild').addEventListener('click', () => void buildReorgPlan());
   $('reorgApply').addEventListener('click', () => void applyReorgPlan());
+  $('reorgCancel').addEventListener('click', () => {
+    void sendMessage({ type: 'CANCEL_TASK' });
+  });
 
   chrome.runtime.onMessage.addListener(
     (msg: { target?: string; phase?: string; done?: number; total?: number }) => {
@@ -201,6 +256,7 @@ async function buildReorgPlan(): Promise<void> {
   btn.textContent = 'Building…';
   $('reorgProgress').hidden = false;
   $('reorgApply').hidden = true;
+  $('reorgCancel').hidden = false;
   try {
     const res = await sendMessage({ type: 'REORG_BUILD_PLAN', scope: currentScope() });
     currentPlan = res.plan;
@@ -211,6 +267,7 @@ async function buildReorgPlan(): Promise<void> {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Build plan';
+    $('reorgCancel').hidden = true;
   }
 }
 

@@ -10,6 +10,15 @@
     <main class="page">
       <h1>Smart Bookmark — Settings</h1>
 
+      <section class="card card--info">
+        <h2>Privacy</h2>
+        <ul class="privacy">
+          <li><strong>Local embeddings:</strong> folder names, bookmark titles, and page text are turned into vectors <em>on your device</em> — they are never sent anywhere for the embedding step.</li>
+          <li><strong>What leaves your device:</strong> only the LLM re-rank / naming calls, which send the page title/URL and the names of the Top-K candidate folders to the OpenAI-compatible endpoint <em>you</em> configure below. With no API key, the extension uses a local keyword rule and sends nothing.</li>
+          <li><strong>Credentials:</strong> API keys and WebDAV/S3 secrets are stored locally in plaintext and are never uploaded by the extension.</li>
+        </ul>
+      </section>
+
       <section class="card">
         <h2>LLM (OpenAI-compatible)</h2>
         <label>Endpoint base URL
@@ -84,18 +93,33 @@
           </label>
         </div>
 
+        <label>Import mode
+          <select id="importMode">
+            <option value="merge">Merge (non-destructive — into "Imported bookmarks")</option>
+            <option value="replace">Replace (clears existing — auto-backed-up first)</option>
+          </select>
+        </label>
         <div class="row">
           <button id="backupNow" class="btn">Backup now</button>
           <button id="backupTest" class="btn">Test connection</button>
           <button id="backupImport" class="btn">Import from remote</button>
         </div>
-        <p class="hint">One-way overwrite snapshot in standard HTML. The server/bucket must allow this extension's origin via CORS. Import writes under a new "Imported bookmarks" folder (non-destructive).</p>
+        <div class="row">
+          <button id="exportFile" class="btn">Export to file…</button>
+          <button id="importFile" class="btn">Import from file…</button>
+          <input id="importFileInput" type="file" accept=".html,text/html" hidden />
+        </div>
+        <p class="hint">One-way overwrite snapshot in standard HTML. The server/bucket must allow this extension's origin via CORS.</p>
       </section>
 
       <section class="card">
         <h2>Index</h2>
         <p class="hint" id="indexStatus">Checking index status…</p>
-        <button id="buildIndex" class="btn">Build / rebuild index</button>
+        <div class="row">
+          <button id="buildIndex" class="btn">Build / update index</button>
+          <button id="rebuildIndex" class="btn">Clear &amp; rebuild</button>
+          <button id="cancelTask" class="btn" hidden>Cancel</button>
+        </div>
         <div id="indexProgress" class="progress" hidden>
           <div class="progress__bar" id="indexProgressBar"></div>
           <span class="progress__label" id="indexProgressLabel"></span>
@@ -114,6 +138,7 @@
         <div class="row">
           <button id="reorgBuild" class="btn">Build plan</button>
           <button id="reorgApply" class="btn btn--primary" hidden>Apply plan</button>
+          <button id="reorgCancel" class="btn" hidden>Cancel</button>
         </div>
         <div id="reorgProgress" class="progress" hidden>
           <div class="progress__bar" id="reorgProgressBar"></div>

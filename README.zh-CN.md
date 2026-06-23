@@ -38,6 +38,26 @@
 
 - [设计概览](./docs/design-overview.md) —— 目标、范围、关键决策、风险。
 - [详细设计](./docs/detailed-design.md) —— 模块、数据模型、流程、MV3 约束、里程碑。
+- [TODO / 进度](./docs/TODO.md) —— 里程碑清单。
+
+## 开发
+
+```bash
+pnpm install
+pnpm dev        # 启动开发构建（Chrome，带 HMR）
+pnpm build      # 生产构建 → .output/chrome-mv3
+pnpm compile    # 类型检查（tsc --noEmit）
+```
+
+加载未打包扩展：打开 `chrome://extensions`，开启**开发者模式**，点击**加载已解压的扩展程序**，选择 `.output/chrome-mv3`（或开发产物目录）。
+
+## 使用
+
+1. 打开**设置**（扩展选项页），可选地配置 OpenAI 兼容的 LLM 端点、Key 和模型。无 Key 时推荐回退为本地关键词规则。
+2. 点击**构建/更新索引**，在本地为已有文件夹生成嵌入（首次会下载嵌入模型）。
+3. 打开任意页面，点击悬浮按钮或工具栏图标收藏——选择推荐的文件夹或自行改选。
+4. 用**重组书签**把已有书签聚类成新结构（先预览再应用，应用前自动安全备份）。
+5. 配置 **Backup**（WebDAV/S3）做单向快照，或在本地导出/导入标准 HTML 书签文件。
 
 ## 范围（本期）
 

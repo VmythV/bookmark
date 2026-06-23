@@ -39,6 +39,26 @@ index in IndexedDB is a derived cache that can be rebuilt at any time.
 
 - [Design Overview](./docs/design-overview.md) — goals, scope, key decisions, risks.
 - [Detailed Design](./docs/detailed-design.md) — modules, data models, flows, MV3 constraints, milestones.
+- [TODO / progress](./docs/TODO.md) — milestone checklist.
+
+## Development
+
+```bash
+pnpm install
+pnpm dev        # launch a dev build with HMR (Chrome)
+pnpm build      # production build → .output/chrome-mv3
+pnpm compile    # type-check (tsc --noEmit)
+```
+
+Load the unpacked extension: open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select `.output/chrome-mv3` (or the dev output).
+
+## Usage
+
+1. Open **Settings** (extension options) and, optionally, configure an OpenAI-compatible LLM endpoint, key, and model. Without a key, recommendations fall back to a local keyword rule.
+2. Click **Build / update index** to embed your existing folders locally (first run downloads the embedding model).
+3. Browse to any page and click the floating button or the toolbar icon to save — pick the recommended folder or override it.
+4. Use **Reorganize bookmarks** to cluster existing bookmarks into a fresh structure (preview, then apply — a safety backup is taken automatically).
+5. Configure **Backup** (WebDAV/S3) for one-way snapshots, or export/import a standard HTML bookmark file locally.
 
 ## Scope (this iteration)
 

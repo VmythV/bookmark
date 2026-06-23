@@ -50,11 +50,17 @@ export async function testConnection(): Promise<void> {
 }
 
 /**
- * Import from the configured target (or provided HTML): parse and write under a
- * new dated folder in the bookmarks bar. Non-destructive.
+ * Import from the configured target (or provided HTML).
+ *
+ * - 'merge' (default, non-destructive): write under a new "Imported bookmarks"
+ *   folder, leaving the existing tree untouched.
+ * - 'replace': take an automatic safety backup, remove existing children of the
+ *   writable roots (bookmarks bar + other bookmarks), then write the imported
+ *   tree there. Destructive but reversible via the safety backup.
  */
 export async function importFromRemote(
   html?: string,
+  mode: 'merge' | 'replace' = 'merge',
 ): Promise<{ created: number }> {
   let content = html;
   if (content == null) {
@@ -63,10 +69,41 @@ export async function importFromRemote(
     if (content == null) throw new Error('No remote snapshot found');
   }
   const parsed = parse(content);
+
+  if (mode === 'replace') {
+    lastImportBackup = await exportHtml();
+    await clearWritableRoots();
+    const parentId = await defaultParentId();
+    const created = await writeParsed(parsed, parentId);
+    return { created };
+  }
+
   const parentId = await defaultParentId();
   const rootFolder = await createFolder(parentId, `Imported bookmarks`);
   const created = await writeParsed(parsed, rootFolder.id);
   return { created };
+}
+
+/** HTML snapshot taken before the last 'replace' import, for manual rollback. */
+let lastImportBackup: string | null = null;
+export function getLastImportBackup(): string | null {
+  return lastImportBackup;
+}
+
+/** Remove all children of the writable root folders (bookmarks bar + others). */
+async function clearWritableRoots(): Promise<void> {
+  const tree = (await getTree()) as BookmarkNode[];
+  const roots = tree[0]?.children ?? [];
+  for (const root of roots) {
+    const children = (await chrome.bookmarks.getChildren(root.id)) as BookmarkNode[];
+    for (const child of children) {
+      try {
+        await chrome.bookmarks.removeTree(child.id);
+      } catch (err) {
+        console.error('[smart-bookmark] failed to clear node', child.id, err);
+      }
+    }
+  }
 }
 
 /** Recursively write a parsed tree under `parentId`. Returns bookmark count. */

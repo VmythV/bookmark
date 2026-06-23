@@ -10,6 +10,7 @@ import { listBookmarks } from '../services/bookmarks';
 import * as store from '../services/vectorStore';
 import { embed } from '../rag/embedderClient';
 import { textHash } from '../rag/folderText';
+import { throwIfCancelled } from '../shared/cancel';
 import type { ReorgScope, VectorEntry } from '../shared/types';
 
 export interface EmbeddedBookmark {
@@ -64,6 +65,7 @@ export async function collectEmbeddedBookmarks(
   let done = 0;
   const total = toEmbed.length;
   for (let i = 0; i < toEmbed.length; i += BATCH) {
+    throwIfCancelled();
     const chunk = toEmbed.slice(i, i + BATCH);
     const vectors = await embed(chunk.map((c) => c.text));
     const entries: VectorEntry[] = [];
