@@ -1,0 +1,63 @@
+/**
+ * Typed message contracts between UI (content/popup/options) and the background
+ * service worker. See docs/detailed-design.md §11.
+ *
+ * Each request message has a `type` discriminant and a matching response type.
+ * Use `sendMessage` to get end-to-end type safety on both sides.
+ */
+import type { PageInfo, SaveRecommendation } from './types';
+
+export interface SaveRequestMsg {
+  type: 'SAVE_REQUEST';
+  page: PageInfo;
+}
+export interface SaveRequestRes {
+  recommendation: SaveRecommendation;
+}
+
+export interface SaveConfirmMsg {
+  type: 'SAVE_CONFIRM';
+  recommendation: SaveRecommendation;
+  page: PageInfo;
+  /** Optional user override of the target folder. */
+  overrideFolderId?: string;
+  overrideNewFolderPath?: string;
+}
+export interface SaveConfirmRes {
+  createdId: string;
+}
+
+export interface PingMsg {
+  type: 'PING';
+}
+export interface PingRes {
+  ok: true;
+}
+
+/** Union of all request messages the background understands. */
+export type RequestMessage = SaveRequestMsg | SaveConfirmMsg | PingMsg;
+
+/** Maps each message type to its response shape. */
+export interface ResponseMap {
+  SAVE_REQUEST: SaveRequestRes;
+  SAVE_CONFIRM: SaveConfirmRes;
+  PING: PingRes;
+}
+
+/**
+ * Thin wrapper over chrome.runtime.sendMessage with typing.
+ * The background returns `{ ok: true, data }` or `{ ok: false, error }`.
+ */
+export type Envelope<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
+export async function sendMessage<M extends RequestMessage>(
+  message: M,
+): Promise<ResponseMap[M['type']]> {
+  const res = (await chrome.runtime.sendMessage(message)) as Envelope<
+    ResponseMap[M['type']]
+  >;
+  if (!res.ok) throw new Error(res.error);
+  return res.data;
+}

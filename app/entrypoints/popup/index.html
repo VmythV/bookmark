@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Bookmark</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <header class="panel__head">
+        <span class="panel__icon">🔖</span>
+        <h1 class="panel__title">Save bookmark</h1>
+      </header>
+
+      <section class="page">
+        <div class="page__title" id="pageTitle">—</div>
+        <div class="page__url" id="pageUrl"></div>
+      </section>
+
+      <section class="rec">
+        <label class="rec__label" for="folder">Folder</label>
+        <select id="folder" class="rec__select"></select>
+        <p class="rec__reason" id="reason"></p>
+      </section>
+
+      <footer class="panel__foot">
+        <button id="save" class="btn btn--primary">Save</button>
+        <a id="openOptions" class="link" href="#">Settings</a>
+      </footer>
+
+      <div id="status" class="status" hidden></div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

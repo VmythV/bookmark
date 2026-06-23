@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Bookmark — Settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1>Smart Bookmark — Settings</h1>
+
+      <section class="card">
+        <h2>LLM (OpenAI-compatible)</h2>
+        <label>Endpoint base URL
+          <input id="llmEndpoint" type="url" placeholder="https://api.example.com/v1" />
+        </label>
+        <label>API key
+          <input id="llmApiKey" type="password" placeholder="sk-…" />
+        </label>
+        <label>Model
+          <input id="llmModel" type="text" placeholder="gpt-4o-mini" />
+        </label>
+        <p class="hint">Used only for folder recommendation &amp; reorganization naming. Stored locally in plaintext, never uploaded by the extension.</p>
+      </section>
+
+      <section class="card">
+        <h2>Embedding</h2>
+        <label>Model
+          <input id="embedModel" type="text" placeholder="Xenova/multilingual-e5-small" />
+        </label>
+        <label>Recall Top-K
+          <input id="topK" type="number" min="1" max="50" />
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Backup</h2>
+        <label>Target
+          <select id="backupTarget">
+            <option value="none">None</option>
+            <option value="webdav">WebDAV</option>
+            <option value="s3">S3</option>
+          </select>
+        </label>
+        <label>Schedule
+          <select id="backupSchedule">
+            <option value="off">Off</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </label>
+        <p class="hint">Backup adapters arrive in M4. These fields persist now.</p>
+      </section>
+
+      <footer class="foot">
+        <button id="save" class="btn btn--primary">Save settings</button>
+        <span id="status" class="status" hidden></span>
+      </footer>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
