@@ -52,6 +52,31 @@ export interface SaveRecommendation {
   reason: string;
 }
 
+/** Reorganization scope. */
+export type ReorgScope =
+  | { kind: 'all' }
+  | { kind: 'folder'; folderId: string };
+
+/** One proposed cluster in a reorg plan. */
+export interface ReorgCluster {
+  suggestedFolderName: string;
+  /** Full path under the reorg root, e.g. "Reorganized/Dev". */
+  suggestedPath: string;
+  bookmarkIds: string[];
+  /** A few member titles, for preview. */
+  sampleTitles: string[];
+}
+
+/** A reorganization plan (preview before apply). */
+export interface ReorgPlan {
+  clusters: ReorgCluster[];
+  /** Bookmark ids HDBSCAN could not classify. */
+  noise: string[];
+  /** Total bookmarks considered. */
+  total: number;
+  generatedAt: number;
+}
+
 /** Persisted configuration (storage.local). Plaintext this iteration, local-only. */
 export interface AppConfig {
   llm: {

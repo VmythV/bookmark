@@ -103,6 +103,25 @@
         <p class="hint">First build downloads the embedding model (~tens of MB) from the HuggingFace CDN, then embeds your folders locally. Cached afterwards.</p>
       </section>
 
+      <section class="card">
+        <h2>Reorganize bookmarks</h2>
+        <p class="hint">Cluster your bookmarks by similarity and propose a fresh folder structure. Preview before applying — nothing moves until you confirm, and a safety backup is taken automatically.</p>
+        <label>Scope
+          <select id="reorgScope">
+            <option value="all">All bookmarks</option>
+          </select>
+        </label>
+        <div class="row">
+          <button id="reorgBuild" class="btn">Build plan</button>
+          <button id="reorgApply" class="btn btn--primary" hidden>Apply plan</button>
+        </div>
+        <div id="reorgProgress" class="progress" hidden>
+          <div class="progress__bar" id="reorgProgressBar"></div>
+          <span class="progress__label" id="reorgProgressLabel"></span>
+        </div>
+        <div id="reorgPreview" class="preview" hidden></div>
+      </section>
+
       <footer class="foot">
         <button id="save" class="btn btn--primary">Save settings</button>
         <span id="status" class="status" hidden></span>

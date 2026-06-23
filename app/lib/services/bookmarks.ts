@@ -58,6 +58,22 @@ export async function sampleChildTitles(
     .map((c) => c.title);
 }
 
+/** Collect all bookmarks (leaf nodes with a URL) under a subtree, or the whole tree. */
+export async function listBookmarks(
+  rootId?: string,
+): Promise<Array<{ id: string; title: string; url: string }>> {
+  const nodes = rootId
+    ? ((await chrome.bookmarks.getSubTree(rootId)) as BookmarkNode[])
+    : await getTree();
+  const out: Array<{ id: string; title: string; url: string }> = [];
+  walk(nodes, (node) => {
+    if (node.url !== undefined) {
+      out.push({ id: node.id, title: node.title, url: node.url });
+    }
+  });
+  return out;
+}
+
 /** Create a bookmark under `parentId`. */
 export async function createBookmark(
   parentId: string,

@@ -17,6 +17,7 @@ import {
   syncSchedule,
   testConnection,
 } from '@/lib/controllers/backupController';
+import { applyPlan, buildPlan } from '@/lib/reorg/plan';
 
 export default defineBackground(() => {
   // Keep the folder index in sync with bookmark changes.
@@ -83,6 +84,20 @@ async function handle(
     case 'SCHEDULE_SYNC':
       await syncSchedule();
       return { ok: true };
+
+    case 'REORG_BUILD_PLAN':
+      return {
+        plan: await buildPlan(message.scope, (p) => {
+          void chrome.runtime
+            .sendMessage({ target: 'reorg-progress', ...p })
+            .catch(() => {
+              /* no receiver */
+            });
+        }),
+      };
+
+    case 'REORG_APPLY':
+      return applyPlan(message.plan);
 
     default: {
       const _exhaustive: never = message;

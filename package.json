@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "aws4fetch": "^1.0.20"
+    "aws4fetch": "^1.0.20",
+    "hdbscan-ts": "^1.0.17"
   }
 }

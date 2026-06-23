@@ -82,6 +82,38 @@ select {
   margin-top: 8px;
 }
 
+.preview {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.cluster {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cluster:last-child {
+  border-bottom: none;
+}
+
+.cluster__name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cluster__samples {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .btn {
   padding: 9px 18px;
   font-size: 13px;

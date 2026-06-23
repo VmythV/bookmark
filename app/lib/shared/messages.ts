@@ -5,7 +5,7 @@
  * Each request message has a `type` discriminant and a matching response type.
  * Use `sendMessage` to get end-to-end type safety on both sides.
  */
-import type { PageInfo, SaveRecommendation } from './types';
+import type { PageInfo, ReorgPlan, ReorgScope, SaveRecommendation } from './types';
 
 export interface SaveRequestMsg {
   type: 'SAVE_REQUEST';
@@ -81,6 +81,24 @@ export interface ScheduleSyncRes {
   ok: true;
 }
 
+export interface ReorgBuildMsg {
+  type: 'REORG_BUILD_PLAN';
+  scope: ReorgScope;
+}
+export interface ReorgBuildRes {
+  plan: ReorgPlan;
+}
+
+export interface ReorgApplyMsg {
+  type: 'REORG_APPLY';
+  plan: ReorgPlan;
+}
+export interface ReorgApplyRes {
+  moved: number;
+  created: number;
+  unsorted: number;
+}
+
 /** Union of all request messages the background understands. */
 export type RequestMessage =
   | SaveRequestMsg
@@ -91,7 +109,9 @@ export type RequestMessage =
   | BackupNowMsg
   | BackupTestMsg
   | BackupImportMsg
-  | ScheduleSyncMsg;
+  | ScheduleSyncMsg
+  | ReorgBuildMsg
+  | ReorgApplyMsg;
 
 /** Maps each message type to its response shape. */
 export interface ResponseMap {
@@ -104,6 +124,8 @@ export interface ResponseMap {
   BACKUP_TEST: BackupTestRes;
   BACKUP_IMPORT: BackupImportRes;
   SCHEDULE_SYNC: ScheduleSyncRes;
+  REORG_BUILD_PLAN: ReorgBuildRes;
+  REORG_APPLY: ReorgApplyRes;
 }
 
 /**

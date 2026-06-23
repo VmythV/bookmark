@@ -14,6 +14,9 @@ importers:
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20
+      hdbscan-ts:
+        specifier: ^1.0.17
+        version: 1.0.17
     devDependencies:
       '@types/chrome':
         specifier: ^0.2.0
@@ -1152,6 +1155,10 @@ packages:
 
   has-property-descriptors@1.0.2:
     resolution: {integrity: sha512-55JNKuIW+vq4Ke1BjOTjM2YctQIvCT7GFzHwmfZPGo5wnrgkid0YQtnAleFSqumZm4az3n2BS+erby5ipJdgrg==}
+
+  hdbscan-ts@1.0.17:
+    resolution: {integrity: sha512-I44z8twblt0FxbiCNVidpQ10lAXKyFwZxRz1CKd9/53qJoDJlJamXoOJF+N1ObhY4xGr1eBUXrfYyxiX9YuIJg==}
+    engines: {node: '>=14.0.0'}
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -2977,6 +2984,8 @@ snapshots:
   has-property-descriptors@1.0.2:
     dependencies:
       es-define-property: 1.0.1
+
+  hdbscan-ts@1.0.17: {}
 
   hookable@5.5.3: {}
 

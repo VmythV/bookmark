@@ -1,7 +1,8 @@
 import './style.css';
 import { getConfig, setConfig } from '@/lib/services/storage';
 import { sendMessage } from '@/lib/shared/messages';
-import type { BackupConfig } from '@/lib/shared/types';
+import { listFolders } from '@/lib/services/bookmarks';
+import type { BackupConfig, ReorgPlan, ReorgScope } from '@/lib/shared/types';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -42,6 +43,7 @@ async function load(): Promise<void> {
   $('backupTest').addEventListener('click', () => void runBackup('BACKUP_TEST'));
   $('backupImport').addEventListener('click', () => void runImport());
   await initIndexSection();
+  await initReorgSection();
 }
 
 function syncTargetFields(): void {
@@ -156,6 +158,108 @@ async function runImport(): Promise<void> {
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+// ---- Reorganization ----
+
+let currentPlan: ReorgPlan | null = null;
+
+async function initReorgSection(): Promise<void> {
+  const scopeSel = $<HTMLSelectElement>('reorgScope');
+  const folders = await listFolders();
+  for (const f of folders.filter((x) => !x.path.includes('/'))) {
+    const opt = document.createElement('option');
+    opt.value = `folder:${f.id}`;
+    opt.textContent = `Folder: ${f.path}`;
+    scopeSel.append(opt);
+  }
+
+  $('reorgBuild').addEventListener('click', () => void buildReorgPlan());
+  $('reorgApply').addEventListener('click', () => void applyReorgPlan());
+
+  chrome.runtime.onMessage.addListener(
+    (msg: { target?: string; phase?: string; done?: number; total?: number }) => {
+      if (msg?.target !== 'reorg-progress') return;
+      const { phase = '', done = 0, total = 0 } = msg;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      $('reorgProgress').hidden = false;
+      ($('reorgProgressBar') as HTMLElement).style.width = `${pct}%`;
+      $('reorgProgressLabel').textContent = `${phase} ${done}/${total}`;
+    },
+  );
+}
+
+function currentScope(): ReorgScope {
+  const v = $<HTMLSelectElement>('reorgScope').value;
+  if (v.startsWith('folder:')) return { kind: 'folder', folderId: v.slice(7) };
+  return { kind: 'all' };
+}
+
+async function buildReorgPlan(): Promise<void> {
+  const btn = $<HTMLButtonElement>('reorgBuild');
+  btn.disabled = true;
+  btn.textContent = 'Building…';
+  $('reorgProgress').hidden = false;
+  $('reorgApply').hidden = true;
+  try {
+    const res = await sendMessage({ type: 'REORG_BUILD_PLAN', scope: currentScope() });
+    currentPlan = res.plan;
+    renderPreview(res.plan);
+    $('reorgApply').hidden = res.plan.clusters.length === 0;
+  } catch (err) {
+    showStatus(errMsg(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Build plan';
+  }
+}
+
+function renderPreview(plan: ReorgPlan): void {
+  const el = $('reorgPreview');
+  el.hidden = false;
+  el.replaceChildren();
+
+  const summary = document.createElement('p');
+  summary.className = 'hint';
+  summary.textContent = `${plan.clusters.length} clusters from ${plan.total} bookmarks, ${plan.noise.length} unsorted.`;
+  el.append(summary);
+
+  for (const c of plan.clusters) {
+    const box = document.createElement('div');
+    box.className = 'cluster';
+    const h = document.createElement('div');
+    h.className = 'cluster__name';
+    h.textContent = `📁 ${c.suggestedPath} (${c.bookmarkIds.length})`;
+    const samples = document.createElement('div');
+    samples.className = 'cluster__samples';
+    samples.textContent = c.sampleTitles.join(' · ');
+    box.append(h, samples);
+    el.append(box);
+  }
+}
+
+async function applyReorgPlan(): Promise<void> {
+  if (!currentPlan) return;
+  if (
+    !confirm(
+      'Apply this reorganization? A safety backup is taken first, but bookmarks will be moved.',
+    )
+  ) {
+    return;
+  }
+  const btn = $<HTMLButtonElement>('reorgApply');
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+  try {
+    const res = await sendMessage({ type: 'REORG_APPLY', plan: currentPlan });
+    showStatus(
+      `Reorganized: ${res.moved} moved, ${res.created} folders, ${res.unsorted} unsorted ✅`,
+    );
+    $('reorgApply').hidden = true;
+    $('reorgPreview').hidden = true;
+  } catch (err) {
+    showStatus(errMsg(err));
+  }
 }
 
 function showStatus(msg: string): void {

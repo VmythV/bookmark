@@ -54,13 +54,16 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 > One-way overwrite snapshot in standard HTML. S3 via aws4fetch (browser SigV4). Import is non-destructive (writes under an "Imported bookmarks" folder). Build verified with `tsc --noEmit` + `wxt build`. Runtime verification (live CORS-configured WebDAV/S3) still pending.
 
-## M5 — Reorganization
+## M5 — Reorganization ✅
 
-- [ ] `src/reorg/cluster.ts` — HDBSCAN over bookmark embeddings
-- [ ] `src/reorg/naming.ts` — LLM folder naming per cluster
-- [ ] `src/reorg/plan.ts` — build ReorgPlan (preview) + apply with auto-backup
-- [ ] `src/controllers/reorgController.ts` — build plan / apply messages
-- [ ] Reorg workbench UI: scope picker, preview, drag-reassign, confirm
+- [x] `app/lib/reorg/collect.ts` — collect bookmarks in scope + embed (reusing cached bookmark vectors by textHash)
+- [x] `app/lib/reorg/cluster.ts` — HDBSCAN (`hdbscan-ts`) over embeddings; noise = label -1; adaptive minClusterSize
+- [x] `app/lib/reorg/naming.ts` — LLM folder naming per cluster, keyword fallback (CJK-aware)
+- [x] `app/lib/reorg/plan.ts` — buildPlan (embed → cluster → name) + applyPlan (auto HTML backup → create folders → batch move → noise to "Unsorted")
+- [x] background: REORG_BUILD_PLAN / REORG_APPLY messages + progress broadcast
+- [x] options: reorg workbench — scope picker, build plan, cluster preview, apply (with confirm)
+
+> Reorg is preview-then-apply with an automatic HTML safety backup before moving anything. Clusters land under a "Reorganized/" root, noise under "Reorganized/Unsorted". Build verified with `tsc --noEmit` + `wxt build`. Runtime verification still pending.
 
 ## M6 — Polish
 
