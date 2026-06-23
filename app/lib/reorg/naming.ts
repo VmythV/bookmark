@@ -11,14 +11,33 @@ const STOP = new Set([
   'how', 'why', 'what', 'your', 'you', 'is', 'are', 'this', 'that',
 ]);
 
+const CJK = /[㐀-鿿぀-ヿ가-힯]/;
+
+function tokensOf(title: string): string[] {
+  const out: string[] = [];
+  for (const seg of title.toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    if (!seg) continue;
+    if (CJK.test(seg)) {
+      // CJK: prefer bigrams (more name-like than single chars).
+      const chars = [...seg];
+      if (chars.length === 1) {
+        out.push(chars[0]!);
+      } else {
+        for (let i = 0; i < chars.length - 1; i++) out.push(chars[i]! + chars[i + 1]!);
+      }
+    } else if (seg.length > 2 && !STOP.has(seg)) {
+      out.push(seg);
+    }
+  }
+  return out;
+}
+
 function keywordName(titles: string[]): string {
   const counts = new Map<string, number>();
   for (const title of titles) {
-    const tokens = title
-      .toLowerCase()
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((t) => t.length > 2 && !STOP.has(t));
-    for (const t of new Set(tokens)) counts.set(t, (counts.get(t) ?? 0) + 1);
+    for (const t of new Set(tokensOf(title))) {
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
   }
   let best = '';
   let bestN = 0;

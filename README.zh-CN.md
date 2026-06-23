@@ -38,6 +38,7 @@
 
 - [设计概览](./docs/design-overview.md) —— 目标、范围、关键决策、风险。
 - [详细设计](./docs/detailed-design.md) —— 模块、数据模型、流程、MV3 约束、里程碑。
+- [启动与测试指南](./docs/getting-started.md) —— 构建、加载、手动测试清单、单元测试。
 - [TODO / 进度](./docs/TODO.md) —— 里程碑清单。
 
 ## 开发

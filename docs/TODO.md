@@ -93,3 +93,16 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [ ] Firefox/Safari support
 - [ ] Two-way sync
 - [ ] README screenshots
+
+## Testing
+
+- [x] Unit tests (Vitest) for browser-free pure logic:
+  - `app/lib/backup/htmlBookmarks.test.ts` — serialize/parse round-trip, escaping, garbage input
+  - `app/lib/reorg/cluster.test.ts` — HDBSCAN grouping, noise, disjoint partition
+  - `app/lib/llm/fallback.test.ts` — keyword match, new-folder proposal, CJK tokenization
+- [x] [Getting Started & Testing guide](./getting-started.md) — build/load/manual checklist
+- [ ] Live runtime verification in Chrome (model download, real LLM endpoint, real WebDAV/S3, clustering quality)
+
+> A unit test caught a real CJK tokenization bug in the keyword fallback (Chinese
+> titles were treated as one token and never matched); fixed with unigram+bigram
+> segmentation in both `fallback.ts` and `naming.ts`.

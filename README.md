@@ -39,6 +39,7 @@ index in IndexedDB is a derived cache that can be rebuilt at any time.
 
 - [Design Overview](./docs/design-overview.md) — goals, scope, key decisions, risks.
 - [Detailed Design](./docs/detailed-design.md) — modules, data models, flows, MV3 constraints, milestones.
+- [Getting Started & Testing](./docs/getting-started.md) — build, load, manual test checklist, unit tests.
 - [TODO / progress](./docs/TODO.md) — milestone checklist.
 
 ## Development

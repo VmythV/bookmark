@@ -18,13 +18,24 @@ const STOP = new Set([
   'com', 'www', 'net', 'org', 'io', 'html', 'http', 'https',
 ]);
 
+const CJK = /[㐀-鿿぀-ヿ가-힯]/;
+
 function tokenize(text: string): Set<string> {
-  const tokens = text
-    .toLowerCase()
-    // split on non-alphanumeric (keeps CJK characters as-is)
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((t) => t.length > 1 && !STOP.has(t));
-  return new Set(tokens);
+  const out = new Set<string>();
+  const segments = text.toLowerCase().split(/[^\p{L}\p{N}]+/u);
+  for (const seg of segments) {
+    if (!seg) continue;
+    if (CJK.test(seg)) {
+      // CJK has no word spacing: index unigrams + bigrams so that e.g.
+      // "机器学习入门" overlaps with a "机器学习" folder.
+      const chars = [...seg];
+      for (const ch of chars) out.add(ch);
+      for (let i = 0; i < chars.length - 1; i++) out.add(chars[i]! + chars[i + 1]!);
+    } else if (seg.length > 1 && !STOP.has(seg)) {
+      out.add(seg);
+    }
+  }
+  return out;
 }
 
 function pageTokens(page: PageInfo): Set<string> {
