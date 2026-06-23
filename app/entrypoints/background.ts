@@ -8,10 +8,17 @@ import type {
   ResponseMap,
 } from '@/lib/shared/messages';
 import { applySave, recommend } from '@/lib/controllers/saveController';
+import { buildIndex, isIndexed, startIncrementalSync } from '@/lib/rag/indexer';
+import { count as vectorCount } from '@/lib/services/vectorStore';
 
 export default defineBackground(() => {
+  // Keep the folder index in sync with bookmark changes.
+  startIncrementalSync();
+
   chrome.runtime.onMessage.addListener((message: RequestMessage, _sender, sendResponse) => {
-    // Route asynchronously; return true to keep the channel open.
+    // Ignore internal embedder traffic; embedderClient handles those.
+    if ((message as { target?: string }).target) return;
+
     handle(message)
       .then((data) => sendResponse({ ok: true, data } satisfies Envelope<unknown>))
       .catch((err: unknown) =>
@@ -39,6 +46,19 @@ async function handle(
         folderId: message.overrideFolderId,
         newFolderPath: message.overrideNewFolderPath,
       });
+
+    case 'INDEX_BUILD':
+      return buildIndex((p) => {
+        // Broadcast progress to any open extension page (e.g. options).
+        void chrome.runtime
+          .sendMessage({ target: 'index-progress', ...p })
+          .catch(() => {
+            /* no receiver open; ignore */
+          });
+      });
+
+    case 'INDEX_STATUS':
+      return { indexed: await isIndexed(), folderCount: await vectorCount('folder') };
 
     default: {
       const _exhaustive: never = message;

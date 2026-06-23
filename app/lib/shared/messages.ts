@@ -34,14 +34,38 @@ export interface PingRes {
   ok: true;
 }
 
+export interface IndexBuildMsg {
+  type: 'INDEX_BUILD';
+}
+export interface IndexBuildRes {
+  embedded: number;
+  skipped: number;
+  removed: number;
+}
+
+export interface IndexStatusMsg {
+  type: 'INDEX_STATUS';
+}
+export interface IndexStatusRes {
+  indexed: boolean;
+  folderCount: number;
+}
+
 /** Union of all request messages the background understands. */
-export type RequestMessage = SaveRequestMsg | SaveConfirmMsg | PingMsg;
+export type RequestMessage =
+  | SaveRequestMsg
+  | SaveConfirmMsg
+  | PingMsg
+  | IndexBuildMsg
+  | IndexStatusMsg;
 
 /** Maps each message type to its response shape. */
 export interface ResponseMap {
   SAVE_REQUEST: SaveRequestRes;
   SAVE_CONFIRM: SaveConfirmRes;
   PING: PingRes;
+  INDEX_BUILD: IndexBuildRes;
+  INDEX_STATUS: IndexStatusRes;
 }
 
 /**

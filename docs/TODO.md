@@ -18,14 +18,18 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 > Note: code lives under `app/` (`srcDir: 'app'` in `wxt.config.ts`); modules under `app/lib/`. Build verified with `tsc --noEmit` + `wxt build`.
 
-## M2 — Local RAG
+## M2 — Local RAG ✅
 
-- [ ] `src/services/vectorStore.ts` — IndexedDB vector persistence + HNSW lifecycle (Domicile skeleton)
-- [ ] `src/rag/embedder.ts` — Transformers.js `multilingual-e5-small`, WebGPU + WASM fallback, runs in Web Worker
-- [ ] `src/rag/folderText.ts` — representative text per folder
-- [ ] `src/rag/indexer.ts` — full build + incremental update on bookmark events (`textHash` skip)
-- [ ] `src/rag/recall.ts` — HNSW Top-K cosine recall
-- [ ] First-run progress UI for model download / index build
+- [x] `app/lib/services/vectorStore.ts` — IndexedDB vector persistence + cosine KNN (brute-force at this scale; HNSW-swappable query interface)
+- [x] `app/lib/rag/embedderWorker.ts` + `app/entrypoints/offscreen/` — Transformers.js `multilingual-e5-small` in a Web Worker hosted by an **offscreen document** (MV3-safe), model downloaded from HF CDN at runtime
+- [x] `app/lib/rag/embedderClient.ts` — background-side offscreen lifecycle + request correlation + progress
+- [x] `app/lib/rag/folderText.ts` — representative text per folder + FNV-1a textHash
+- [x] `app/lib/rag/indexer.ts` — full build + incremental update on bookmark events (`textHash` skip)
+- [x] `app/lib/rag/recall.ts` — Top-K cosine recall; wired into saveController (M2 picks Top-1)
+- [x] Options page: index status + build/rebuild button + progress bar
+- [x] CSP `wasm-unsafe-eval` for ONNX runtime; `offscreen` permission
+
+> Decisions: embedding runs in an **offscreen document** (service worker can't host it); model weights load from the **HuggingFace CDN** at runtime. Vector store uses exact cosine KNN for now. Build verified with `tsc --noEmit` + `wxt build`.
 
 ## M3 — LLM Save Recommendation
 

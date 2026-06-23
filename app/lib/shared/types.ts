@@ -23,6 +23,15 @@ export interface PageInfo {
   description?: string;
 }
 
+/** A vector index entry persisted in IndexedDB. */
+export interface VectorEntry {
+  key: string; // bookmark/folder id
+  kind: 'folder' | 'bookmark';
+  vector: number[]; // normalized embedding (cosine == dot product)
+  textHash: string; // hash of the source text, to skip re-embedding unchanged nodes
+  updatedAt: number; // epoch ms, stamped by the caller
+}
+
 /** A candidate folder presented to the LLM during re-ranking. */
 export interface FolderCandidate {
   id: string;

@@ -92,3 +92,26 @@ select {
   font-size: 13px;
   color: #047857;
 }
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.progress__bar {
+  height: 8px;
+  width: 0;
+  flex: 1;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.progress__label {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 56px;
+  text-align: right;
+}
