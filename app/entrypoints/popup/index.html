@@ -19,8 +19,20 @@
       </section>
 
       <section class="rec">
-        <label class="rec__label" for="folder">Folder</label>
+        <div class="rec__modes">
+          <label class="mode">
+            <input type="radio" name="mode" value="use_existing" id="modeExisting" checked />
+            Existing folder
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="create_new" id="modeNew" />
+            New folder
+          </label>
+        </div>
+
         <select id="folder" class="rec__select"></select>
+        <input id="newPath" class="rec__input" type="text" placeholder="e.g. Dev/Rust" hidden />
+
         <p class="rec__reason" id="reason"></p>
       </section>
 

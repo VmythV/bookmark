@@ -2,7 +2,7 @@
  * Recall: embed a page and find the Top-K most similar folders.
  * See docs/detailed-design.md §7.
  */
-import { listFolders } from '../services/bookmarks';
+import { listFolders, sampleChildTitles } from '../services/bookmarks';
 import * as store from '../services/vectorStore';
 import { embedOne } from './embedderClient';
 import type { FolderCandidate, PageInfo } from '../shared/types';
@@ -39,7 +39,8 @@ export async function recallFolders(
   for (const hit of hits) {
     const path = pathById.get(hit.key);
     if (!path) continue; // folder removed since indexing
-    out.push({ id: hit.key, path, sampleTitles: [], score: hit.score });
+    const sampleTitles = await sampleChildTitles(hit.key, 4);
+    out.push({ id: hit.key, path, sampleTitles, score: hit.score });
   }
   return out;
 }

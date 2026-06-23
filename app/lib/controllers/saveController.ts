@@ -1,11 +1,15 @@
 /**
  * Save flow controller. See docs/detailed-design.md §5.
  *
- * M2: local RAG recall is wired in — recommend the Top-1 recalled folder. The
- * LLM re-ranking step (M3) will replace the "pick Top-1" heuristic with a
- * structured LLM choice over the Top-K candidates.
+ * M3: full pipeline — local recall (Top-K) → LLM re-rank (structured output).
+ * Falls back to a keyword rule when the LLM is unconfigured/offline/errors, and
+ * to the default folder when the index isn't built yet.
  */
-import type { PageInfo, SaveRecommendation } from '../shared/types';
+import type {
+  FolderCandidate,
+  PageInfo,
+  SaveRecommendation,
+} from '../shared/types';
 import {
   createBookmark,
   defaultParentId,
@@ -14,29 +18,34 @@ import {
 import { getConfig } from '../services/storage';
 import { recallFolders } from '../rag/recall';
 import { isIndexed } from '../rag/indexer';
+import { recommendFolder } from '../llm/provider';
+import { recommendByKeywords } from '../llm/fallback';
 
 /**
- * Produce a folder recommendation for a page.
- * M2: Top-1 of the local recall. Falls back to the default folder when the
- * index is empty or recall fails.
+ * Produce a folder recommendation for a page:
+ * recall Top-K → LLM re-rank → keyword fallback → default folder.
  */
 export async function recommend(page: PageInfo): Promise<SaveRecommendation> {
+  let candidates: FolderCandidate[] = [];
+
   try {
     if (await isIndexed()) {
       const cfg = await getConfig();
-      const candidates = await recallFolders(page, cfg.recall.topK);
-      const best = candidates[0];
-      if (best) {
-        return {
-          action: 'use_existing',
-          folderId: best.id,
-          confidence: best.score,
-          reason: `Most similar folder: "${best.path}" (score ${best.score.toFixed(2)}). LLM re-ranking arrives in M3.`,
-        };
+      candidates = await recallFolders(page, cfg.recall.topK);
+
+      if (candidates.length > 0) {
+        // Try the LLM re-rank first.
+        try {
+          return await recommendFolder(page, candidates, cfg.llm);
+        } catch (err) {
+          console.warn('[smart-bookmark] LLM re-rank failed, using keyword fallback', err);
+          return recommendByKeywords(page, candidates);
+        }
       }
     }
   } catch (err) {
-    console.error('[smart-bookmark] recall failed, falling back', err);
+    console.error('[smart-bookmark] recommend failed, falling back', err);
+    if (candidates.length > 0) return recommendByKeywords(page, candidates);
   }
 
   const folderId = await defaultParentId();

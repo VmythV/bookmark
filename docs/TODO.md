@@ -31,13 +31,16 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 > Decisions: embedding runs in an **offscreen document** (service worker can't host it); model weights load from the **HuggingFace CDN** at runtime. Vector store uses exact cosine KNN for now. Build verified with `tsc --noEmit` + `wxt build`.
 
-## M3 — LLM Save Recommendation
+## M3 — LLM Save Recommendation ✅
 
-- [ ] `src/llm/schemas.ts` — JSON schemas for structured output
-- [ ] `src/llm/provider.ts` — OpenAI-compatible `/v1/chat/completions` + `response_format`
-- [ ] `src/llm/fallback.ts` — keyword-rule recommendation (no key / offline)
-- [ ] `src/controllers/saveController.ts` — wire recall → re-rank → confirm → write
-- [ ] Save panel: show recommendation, allow override / edit new-folder name
+- [x] `app/lib/llm/schemas.ts` — JSON schemas for structured output (save recommendation + folder naming)
+- [x] `app/lib/llm/provider.ts` — OpenAI-compatible `/chat/completions` + `response_format` json_schema, prompt builder, defensive validation
+- [x] `app/lib/llm/fallback.ts` — keyword-overlap recommendation (no key / offline), CJK-aware tokenizer
+- [x] `app/lib/controllers/saveController.ts` — recall Top-K → LLM re-rank → keyword fallback → default folder
+- [x] recall now fills `sampleTitles` for each candidate
+- [x] Popup: existing-folder vs new-folder modes, pre-selected by the recommendation, confidence/reason shown
+
+> Pipeline: recall (M2) → LLM structured re-rank → keyword fallback. Build verified with `tsc --noEmit` + `wxt build`. Runtime verification (live Chrome load + real LLM endpoint) still pending.
 
 ## M4 — Backup / Import / Export
 

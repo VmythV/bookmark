@@ -13,7 +13,6 @@ let page: PageInfo | null = null;
 let rec: SaveRecommendation | null = null;
 
 async function init(): Promise<void> {
-  // Current tab → page info (popup can't run capturePageInfo in the page context).
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) {
     showStatus('No active page to save.', true);
@@ -23,7 +22,6 @@ async function init(): Promise<void> {
   $('pageTitle').textContent = page.title;
   $('pageUrl').textContent = page.url;
 
-  // Populate the folder list and ask for a recommendation in parallel.
   const folderSelect = $<HTMLSelectElement>('folder');
   const [folders, res] = await Promise.all([
     listFolders(),
@@ -37,8 +35,13 @@ async function init(): Promise<void> {
     opt.textContent = f.path;
     folderSelect.append(opt);
   }
-  if (rec.folderId) folderSelect.value = rec.folderId;
+
+  applyRecommendation(rec);
   $('reason').textContent = rec.reason;
+
+  // Mode toggle.
+  $('modeExisting').addEventListener('change', () => setMode('use_existing'));
+  $('modeNew').addEventListener('change', () => setMode('create_new'));
 
   $('save').addEventListener('click', () => void onSave());
   $('openOptions').addEventListener('click', (e) => {
@@ -47,18 +50,45 @@ async function init(): Promise<void> {
   });
 }
 
+function applyRecommendation(r: SaveRecommendation): void {
+  if (r.action === 'create_new' && r.newFolderPath) {
+    ($('modeNew') as HTMLInputElement).checked = true;
+    $<HTMLInputElement>('newPath').value = r.newFolderPath;
+    setMode('create_new');
+  } else {
+    ($('modeExisting') as HTMLInputElement).checked = true;
+    if (r.folderId) $<HTMLSelectElement>('folder').value = r.folderId;
+    setMode('use_existing');
+  }
+}
+
+function setMode(mode: 'use_existing' | 'create_new'): void {
+  $('folder').hidden = mode !== 'use_existing';
+  $('newPath').hidden = mode !== 'create_new';
+}
+
+function currentMode(): 'use_existing' | 'create_new' {
+  return ($('modeNew') as HTMLInputElement).checked
+    ? 'create_new'
+    : 'use_existing';
+}
+
 async function onSave(): Promise<void> {
   if (!page || !rec) return;
   const btn = $<HTMLButtonElement>('save');
   btn.disabled = true;
   btn.textContent = 'Saving…';
   try {
-    const overrideFolderId = $<HTMLSelectElement>('folder').value;
+    const mode = currentMode();
+    const override =
+      mode === 'create_new'
+        ? { overrideNewFolderPath: $<HTMLInputElement>('newPath').value.trim() }
+        : { overrideFolderId: $<HTMLSelectElement>('folder').value };
     await sendMessage({
       type: 'SAVE_CONFIRM',
       page,
       recommendation: rec,
-      overrideFolderId,
+      ...override,
     });
     showStatus('Saved ✅', false);
     setTimeout(() => window.close(), 700);
