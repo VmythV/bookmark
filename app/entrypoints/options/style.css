@@ -75,6 +75,13 @@ select {
   gap: 14px;
 }
 
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .btn {
   padding: 9px 18px;
   font-size: 13px;

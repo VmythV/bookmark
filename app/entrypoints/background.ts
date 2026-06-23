@@ -10,10 +10,20 @@ import type {
 import { applySave, recommend } from '@/lib/controllers/saveController';
 import { buildIndex, isIndexed, startIncrementalSync } from '@/lib/rag/indexer';
 import { count as vectorCount } from '@/lib/services/vectorStore';
+import {
+  backupNow,
+  importFromRemote,
+  registerAlarmHandler,
+  syncSchedule,
+  testConnection,
+} from '@/lib/controllers/backupController';
 
 export default defineBackground(() => {
   // Keep the folder index in sync with bookmark changes.
   startIncrementalSync();
+  // Scheduled backups.
+  registerAlarmHandler();
+  void syncSchedule();
 
   chrome.runtime.onMessage.addListener((message: RequestMessage, _sender, sendResponse) => {
     // Ignore internal embedder traffic; embedderClient handles those.
@@ -59,6 +69,20 @@ async function handle(
 
     case 'INDEX_STATUS':
       return { indexed: await isIndexed(), folderCount: await vectorCount('folder') };
+
+    case 'BACKUP_NOW':
+      return backupNow();
+
+    case 'BACKUP_TEST':
+      await testConnection();
+      return { ok: true };
+
+    case 'BACKUP_IMPORT':
+      return importFromRemote(message.html);
+
+    case 'SCHEDULE_SYNC':
+      await syncSchedule();
+      return { ok: true };
 
     default: {
       const _exhaustive: never = message;

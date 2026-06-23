@@ -19,6 +19,7 @@
     "wxt": "^0.19.13"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0"
+    "@huggingface/transformers": "^4.2.0",
+    "aws4fetch": "^1.0.20"
   }
 }

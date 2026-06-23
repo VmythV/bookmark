@@ -51,13 +51,47 @@ export interface IndexStatusRes {
   folderCount: number;
 }
 
+export interface BackupNowMsg {
+  type: 'BACKUP_NOW';
+}
+export interface BackupNowRes {
+  bytes: number;
+}
+
+export interface BackupTestMsg {
+  type: 'BACKUP_TEST';
+}
+export interface BackupTestRes {
+  ok: true;
+}
+
+export interface BackupImportMsg {
+  type: 'BACKUP_IMPORT';
+  /** Optional inline HTML (e.g. from a local file); otherwise pull from remote. */
+  html?: string;
+}
+export interface BackupImportRes {
+  created: number;
+}
+
+export interface ScheduleSyncMsg {
+  type: 'SCHEDULE_SYNC';
+}
+export interface ScheduleSyncRes {
+  ok: true;
+}
+
 /** Union of all request messages the background understands. */
 export type RequestMessage =
   | SaveRequestMsg
   | SaveConfirmMsg
   | PingMsg
   | IndexBuildMsg
-  | IndexStatusMsg;
+  | IndexStatusMsg
+  | BackupNowMsg
+  | BackupTestMsg
+  | BackupImportMsg
+  | ScheduleSyncMsg;
 
 /** Maps each message type to its response shape. */
 export interface ResponseMap {
@@ -66,6 +100,10 @@ export interface ResponseMap {
   PING: PingRes;
   INDEX_BUILD: IndexBuildRes;
   INDEX_STATUS: IndexStatusRes;
+  BACKUP_NOW: BackupNowRes;
+  BACKUP_TEST: BackupTestRes;
+  BACKUP_IMPORT: BackupImportRes;
+  SCHEDULE_SYNC: ScheduleSyncRes;
 }
 
 /**

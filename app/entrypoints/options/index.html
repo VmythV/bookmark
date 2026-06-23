@@ -50,7 +50,46 @@
             <option value="weekly">Weekly</option>
           </select>
         </label>
-        <p class="hint">Backup adapters arrive in M4. These fields persist now.</p>
+
+        <div id="webdavFields" hidden>
+          <label>WebDAV file URL
+            <input id="webdavUrl" type="url" placeholder="https://dav.example.com/bookmarks.html" />
+          </label>
+          <label>Username
+            <input id="webdavUser" type="text" />
+          </label>
+          <label>Password
+            <input id="webdavPass" type="password" />
+          </label>
+        </div>
+
+        <div id="s3Fields" hidden>
+          <label>Endpoint
+            <input id="s3Endpoint" type="url" placeholder="https://s3.us-east-1.amazonaws.com" />
+          </label>
+          <label>Region
+            <input id="s3Region" type="text" placeholder="us-east-1" />
+          </label>
+          <label>Bucket
+            <input id="s3Bucket" type="text" />
+          </label>
+          <label>Object key
+            <input id="s3Key" type="text" placeholder="bookmarks.html" />
+          </label>
+          <label>Access key ID
+            <input id="s3AccessKey" type="text" />
+          </label>
+          <label>Secret access key
+            <input id="s3Secret" type="password" />
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="backupNow" class="btn">Backup now</button>
+          <button id="backupTest" class="btn">Test connection</button>
+          <button id="backupImport" class="btn">Import from remote</button>
+        </div>
+        <p class="hint">One-way overwrite snapshot in standard HTML. The server/bucket must allow this extension's origin via CORS. Import writes under a new "Imported bookmarks" folder (non-destructive).</p>
       </section>
 
       <section class="card">

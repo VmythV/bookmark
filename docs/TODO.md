@@ -42,14 +42,17 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 > Pipeline: recall (M2) → LLM structured re-rank → keyword fallback. Build verified with `tsc --noEmit` + `wxt build`. Runtime verification (live Chrome load + real LLM endpoint) still pending.
 
-## M4 — Backup / Import / Export
+## M4 — Backup / Import / Export ✅
 
-- [ ] `src/backup/htmlBookmarks.ts` — Netscape HTML serialize/parse
-- [ ] `src/backup/webdav.ts` — PUT/GET adapter (basic auth)
-- [ ] `src/backup/s3.ts` — SigV4-signed PUT/GET adapter
-- [ ] `src/controllers/backupController.ts` — manual trigger + `chrome.alarms` schedule
-- [ ] Settings: backup target, credentials, schedule, "backup now", "test connection"
-- [ ] Import flow: fetch/parse → preview → write (replace by default)
+- [x] `app/lib/backup/htmlBookmarks.ts` — Netscape HTML serialize + DOM-free tolerant parse
+- [x] `app/lib/backup/adapter.ts` — common `BackupAdapter` interface (put/get/test)
+- [x] `app/lib/backup/webdav.ts` — PUT/GET/HEAD adapter (basic auth)
+- [x] `app/lib/backup/s3.ts` — SigV4 adapter via `aws4fetch` (S3-compatible)
+- [x] `app/lib/controllers/backupController.ts` — backupNow / testConnection / importFromRemote (non-destructive) / `chrome.alarms` schedule (daily/weekly)
+- [x] background: alarm handler + schedule sync on startup; BACKUP_NOW/TEST/IMPORT/SCHEDULE_SYNC messages
+- [x] options: WebDAV/S3 credential fields (toggle by target), backup now / test / import buttons
+
+> One-way overwrite snapshot in standard HTML. S3 via aws4fetch (browser SigV4). Import is non-destructive (writes under an "Imported bookmarks" folder). Build verified with `tsc --noEmit` + `wxt build`. Runtime verification (live CORS-configured WebDAV/S3) still pending.
 
 ## M5 — Reorganization
 
