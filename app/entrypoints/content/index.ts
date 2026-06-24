@@ -9,16 +9,10 @@ import { capturePageInfo } from '@/lib/services/page';
 export default defineContentScript({
   matches: ['<all_urls>'],
   cssInjectionMode: 'ui',
-  // Don't run on restricted pages where we cannot meaningfully save.
-  excludeMatches: [
-    'chrome://*/*',
-    'edge://*/*',
-    'about:*',
-    'devtools://*/*',
-  ],
 
   async main(ctx) {
-    // Skip on pages that don't expose a useful URL.
+    // Skip on pages that don't expose a useful URL (chrome://, about:, etc.
+    // are already excluded by <all_urls>, but guard anyway).
     if (!location.href.startsWith('http')) return;
     if (ctx.isInvalid) return;
 
