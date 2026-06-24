@@ -161,6 +161,19 @@ export async function setTags(id: string, tags: string[]): Promise<void> {
   await store.put(cur);
 }
 
+/** Update the folder placement of a stored bookmark (used after a move). */
+export async function setFolder(
+  id: string,
+  folderId: string,
+  folderPath: string,
+): Promise<void> {
+  const cur = await store.get(id);
+  if (!cur) return;
+  cur.folderId = folderId;
+  cur.folderPath = folderPath;
+  await store.put(cur);
+}
+
 /** Update only the embedding of a stored bookmark. */
 export async function setEmbedding(
   id: string,

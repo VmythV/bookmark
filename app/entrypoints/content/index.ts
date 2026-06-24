@@ -23,8 +23,9 @@ export default defineContentScript({
       onMount(container) {
         const btn = document.createElement('button');
         btn.className = 'sb-fab';
-        btn.title = 'Save to Smart Bookmark';
-        btn.textContent = '🔖';
+        btn.setAttribute('aria-label', 'Save to Smart Bookmark');
+        btn.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
         btn.addEventListener('click', () => void onClick());
         container.append(btn);
       },

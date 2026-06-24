@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Bookmark — Settings</title>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <div class="flex flex-col h-screen overflow-hidden">
+      <!-- Header -->
+      <header
+        class="flex items-center gap-2.5 px-4 py-3 border-b border-base-300 shrink-0"
+      >
+        <div
+          class="grid place-items-center w-8 h-8 rounded-lg bg-primary/10 text-primary"
+          data-icon="bookmark"
+        ></div>
+        <div class="grow leading-tight">
+          <div class="font-semibold text-sm">Settings</div>
+          <div class="text-[11px] opacity-50" id="version">Smart Bookmark v0.2.0</div>
+        </div>
+      </header>
+
+      <!-- Body: icon rail + content -->
+      <div class="flex grow min-h-0">
+        <nav
+          id="nav"
+          class="flex flex-col gap-1 p-2 border-r border-base-300 shrink-0"
+        >
+          <button class="nav-item active" data-section="overview" data-icon="home" title="Overview"></button>
+          <button class="nav-item" data-section="embedding" data-icon="layers" title="Embedding"></button>
+          <button class="nav-item" data-section="chat" data-icon="message" title="Chat"></button>
+          <button class="nav-item" data-section="search" data-icon="search" title="Search"></button>
+          <button class="nav-item" data-section="organize" data-icon="wand" title="Organize"></button>
+          <button class="nav-item" data-section="privacy" data-icon="shield" title="Privacy"></button>
+          <button class="nav-item" data-section="about" data-icon="info" title="About"></button>
+        </nav>
+
+        <main class="grow min-w-0 overflow-y-auto px-4 py-4 pb-20">
+          <!-- Overview -->
+          <section data-section="overview" class="section space-y-4">
+            <h1 class="text-lg font-semibold tracking-tight">Overview</h1>
+            <div class="flex flex-col gap-2">
+              <div
+                class="rounded-box bg-base-200 border border-base-300 px-4 py-3 flex items-center justify-between"
+              >
+                <span class="text-sm opacity-70">Bookmarks tracked</span>
+                <span
+                  class="text-xl font-semibold text-primary tabular-nums"
+                  id="statBookmarks"
+                  >—</span
+                >
+              </div>
+              <div
+                class="rounded-box bg-base-200 border border-base-300 px-4 py-3 flex items-center justify-between"
+              >
+                <span class="text-sm opacity-70">Embedding</span>
+                <span class="text-base font-semibold" id="statEmbedding">Off</span>
+              </div>
+              <div
+                class="rounded-box bg-base-200 border border-base-300 px-4 py-3 flex items-center justify-between"
+              >
+                <span class="text-sm opacity-70">Search mode</span>
+                <span class="text-base font-semibold" id="statSearch">Lexical</span>
+              </div>
+            </div>
+            <div
+              class="rounded-box bg-info/10 border border-info/20 text-xs leading-relaxed px-3 py-3 flex gap-2"
+            >
+              <span data-icon="sparkles" class="text-info shrink-0 mt-0.5"></span>
+              <span
+                >The folder recommender works with zero configuration. Enable an
+                embedding provider for semantic search and sharper
+                recommendations.</span
+              >
+            </div>
+          </section>
+
+          <!-- Embedding -->
+          <section data-section="embedding" class="section hidden space-y-4">
+            <div>
+              <h1 class="text-lg font-semibold tracking-tight">
+                Embedding
+                <span class="badge badge-ghost badge-sm align-middle ml-1"
+                  >optional</span
+                >
+              </h1>
+              <p class="text-xs opacity-60 mt-1 leading-relaxed">
+                OpenAI-compatible endpoint for semantic search and sharper
+                recommendations. Off by default.
+              </p>
+            </div>
+            <div class="flex flex-col gap-3.5">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="embedEnabled"
+                  type="checkbox"
+                  class="toggle toggle-primary toggle-sm"
+                />
+                <span class="text-sm font-medium">Enable embedding</span>
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Endpoint base URL</span>
+                <input
+                  id="embedEndpoint"
+                  type="url"
+                  placeholder="https://api.openai.com/v1"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">API key</span>
+                <input
+                  id="embedKey"
+                  type="password"
+                  placeholder="sk-…"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Model</span>
+                <input
+                  id="embedModel"
+                  type="text"
+                  placeholder="text-embedding-3-small"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <div class="flex items-center gap-3 flex-wrap">
+                <button id="testEmbed" class="btn btn-sm btn-outline">
+                  Test connection
+                </button>
+                <span id="embedStatus" class="text-sm"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Chat -->
+          <section data-section="chat" class="section hidden space-y-4">
+            <div>
+              <h1 class="text-lg font-semibold tracking-tight">
+                Chat
+                <span class="badge badge-ghost badge-sm align-middle ml-1"
+                  >optional</span
+                >
+              </h1>
+              <p class="text-xs opacity-60 mt-1 leading-relaxed">
+                OpenAI-compatible endpoint, reserved for natural-language search.
+                Off by default.
+              </p>
+            </div>
+            <div class="flex flex-col gap-3.5">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="chatEnabled"
+                  type="checkbox"
+                  class="toggle toggle-primary toggle-sm"
+                />
+                <span class="text-sm font-medium">Enable chat</span>
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Endpoint base URL</span>
+                <input
+                  id="chatEndpoint"
+                  type="url"
+                  placeholder="https://api.deepseek.com"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">API key</span>
+                <input
+                  id="chatKey"
+                  type="password"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Model</span>
+                <input
+                  id="chatModel"
+                  type="text"
+                  placeholder="deepseek-chat"
+                  class="input input-bordered input-sm w-full"
+                />
+              </label>
+              <div class="flex items-center gap-3 flex-wrap">
+                <button id="testChat" class="btn btn-sm btn-outline">
+                  Test connection
+                </button>
+                <span id="chatStatus" class="text-sm"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Search -->
+          <section data-section="search" class="section hidden space-y-4">
+            <h1 class="text-lg font-semibold tracking-tight">Search</h1>
+            <div class="flex flex-col gap-3.5">
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Mode</span>
+                <select id="searchMode" class="select select-bordered select-sm w-full">
+                  <option value="lexical">Lexical only (no embedding)</option>
+                  <option value="hybrid">Hybrid (lexical + vector)</option>
+                </select>
+              </label>
+              <label class="form-control gap-1.5">
+                <span class="label-text text-xs opacity-60">Max results</span>
+                <input
+                  id="searchTopK"
+                  type="number"
+                  min="1"
+                  max="500"
+                  class="input input-bordered input-sm w-32"
+                />
+              </label>
+            </div>
+          </section>
+
+          <!-- Organize -->
+          <section data-section="organize" class="section hidden">
+            <div id="organizeRoot" class="space-y-4"></div>
+          </section>
+
+          <!-- Privacy -->
+          <section data-section="privacy" class="section hidden space-y-4">
+            <h1 class="text-lg font-semibold tracking-tight">Privacy</h1>
+            <div class="text-xs leading-relaxed space-y-3 opacity-90">
+              <p>
+                <strong>Local-first:</strong> folder recommendations are computed
+                on-device — nothing leaves your machine unless you enable a
+                provider.
+              </p>
+              <p>
+                <strong>Embedding:</strong> when enabled, bookmark titles/URLs are
+                sent to <em>your</em> configured endpoint.
+              </p>
+              <p>
+                <strong>Chat:</strong> when enabled, queries are sent to
+                <em>your</em> configured endpoint.
+              </p>
+              <p>
+                <strong>Credentials:</strong> API keys are stored locally in
+                plaintext and never uploaded by the extension.
+              </p>
+            </div>
+          </section>
+
+          <!-- About -->
+          <section data-section="about" class="section hidden space-y-4">
+            <h1 class="text-lg font-semibold tracking-tight">About</h1>
+            <div class="text-sm space-y-2">
+              <p class="leading-relaxed">
+                Smart Bookmark — AI-assisted bookmarking with smart folder + tag
+                suggestions and semantic search.
+              </p>
+              <p class="opacity-60 text-xs">
+                Version <span id="aboutVersion">0.2.0</span> · MIT License
+              </p>
+              <a
+                href="https://github.com/VmythV/bookmark"
+                target="_blank"
+                class="link link-hover text-xs inline-flex items-center gap-1.5 text-primary"
+                data-icon="github"
+                >View on GitHub</a
+              >
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Sticky save bar (config sections only) -->
+      <div
+        id="saveBar"
+        class="shrink-0 border-t border-base-300 bg-base-100 px-4 py-3 flex items-center gap-3"
+        hidden
+      >
+        <span
+          id="saved"
+          class="text-sm text-success inline-flex items-center gap-1.5 grow"
+        ></span>
+        <button id="save" class="btn btn-primary btn-sm gap-2">
+          Save settings
+        </button>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

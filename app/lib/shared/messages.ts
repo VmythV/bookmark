@@ -125,6 +125,26 @@ export type Envelope<T> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
+// ───── Reorg (Organize) — Port channel ─────
+// analyze/apply stream progress and support cancel, so they use a long-lived
+// chrome.runtime Port instead of the request/response union above.
+
+export const REORG_PORT = 'reorg' as const;
+
+/** Side panel → background. */
+export type ReorgClientMsg =
+  | { cmd: 'analyze' }
+  | { cmd: 'apply'; input: import('../reorg/types').ApplyReorgInput }
+  | { cmd: 'cancel' };
+
+/** Background → side panel. */
+export type ReorgServerMsg =
+  | { kind: 'progress'; progress: import('../reorg/types').ReorgProgress }
+  | { kind: 'plan'; plan: import('../reorg/types').ReorgPlan }
+  | { kind: 'applied'; result: import('../reorg/types').ApplyReorgResult }
+  | { kind: 'error'; error: string }
+  | { kind: 'cancelled' };
+
 export async function sendMessage<M extends RequestMessage>(
   message: M,
 ): Promise<ResponseMap[M['type']]> {
