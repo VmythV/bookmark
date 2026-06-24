@@ -10,9 +10,10 @@ const CONFIG_KEY = 'config';
 function withDefaults(stored: Partial<AppConfig> | undefined): AppConfig {
   if (!stored) return structuredClone(DEFAULT_CONFIG);
   return {
-    llm: { ...DEFAULT_CONFIG.llm, ...stored.llm },
     embedding: { ...DEFAULT_CONFIG.embedding, ...stored.embedding },
-    recall: { ...DEFAULT_CONFIG.recall, ...stored.recall },
+    chat: { ...DEFAULT_CONFIG.chat, ...stored.chat },
+    recommend: { ...DEFAULT_CONFIG.recommend, ...stored.recommend },
+    search: { ...DEFAULT_CONFIG.search, ...stored.search },
     backup: { ...DEFAULT_CONFIG.backup, ...stored.backup },
   };
 }

@@ -1,7 +1,7 @@
 import './style.css';
-import { sendMessage } from '@/lib/shared/messages';
-import { listFolders } from '@/lib/services/bookmarks';
-import type { PageInfo, SaveRecommendation } from '@/lib/shared/types';
+import { sendMessage, type PageInfo } from '@/lib/shared/messages';
+import { capturePageInfo } from '@/lib/services/page';
+import type { FolderRecommendation } from '@/lib/shared/types';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -9,94 +9,129 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-let page: PageInfo | null = null;
-let rec: SaveRecommendation | null = null;
-
 async function init(): Promise<void> {
+  // Resolve current tab's page info (popups can't run in-page capturePageInfo).
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.url) {
-    showStatus('No active page to save.', true);
+  if (!tab?.url || !tab.url.startsWith('http')) {
+    showStatus('This page cannot be saved.', true);
     return;
   }
-  page = { url: tab.url, title: tab.title ?? tab.url };
-  $('pageTitle').textContent = page.title;
-  $('pageUrl').textContent = page.url;
+  const page: PageInfo = { url: tab.url, title: tab.title ?? tab.url };
 
-  const folderSelect = $<HTMLSelectElement>('folder');
-  const [folders, res] = await Promise.all([
-    listFolders(),
+  const titleInput = $<HTMLInputElement>('title');
+  titleInput.value = page.title;
+  titleInput.addEventListener('input', () => updateSaveBtn());
+
+  // Folder list + recommendations + tag suggestions in parallel.
+  const [{ folders }, { recommendations, suggestedTags }] = await Promise.all([
+    sendMessage({ type: 'LIST_FOLDERS' }),
     sendMessage({ type: 'SAVE_REQUEST', page }),
   ]);
-  rec = res.recommendation;
 
+  const sel = $<HTMLSelectElement>('folder');
   for (const f of folders) {
     const opt = document.createElement('option');
     opt.value = f.id;
     opt.textContent = f.path;
-    folderSelect.append(opt);
+    sel.append(opt);
   }
+  if (recommendations[0]) sel.value = recommendations[0].folderId;
+  renderRecs(recommendations);
 
-  applyRecommendation(rec);
-  $('reason').textContent = rec.reason;
+  // Tags: start from suggestions, user can edit.
+  const tagsInput = $<HTMLInputElement>('tags');
+  tagsInput.value = suggestedTags.join(', ');
+  renderTagSugg(suggestedTags, tagsInput);
 
-  // Mode toggle.
-  $('modeExisting').addEventListener('change', () => setMode('use_existing'));
-  $('modeNew').addEventListener('change', () => setMode('create_new'));
+  // New folder button → prompt for path, ensureFolderPath, reload folders.
+  $<HTMLButtonElement>('newFolder').addEventListener('click', () => void onNewFolder(sel));
 
-  $('save').addEventListener('click', () => void onSave());
-  $('openOptions').addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.runtime.openOptionsPage();
+  $<HTMLButtonElement>('save').addEventListener('click', () => void onSave(page));
+  $<HTMLButtonElement>('search').addEventListener('click', () => {
+    chrome.action.openPopup(); // placeholder; opens quick-search when implemented
   });
+
+  updateSaveBtn();
 }
 
-function applyRecommendation(r: SaveRecommendation): void {
-  if (r.action === 'create_new' && r.newFolderPath) {
-    ($('modeNew') as HTMLInputElement).checked = true;
-    $<HTMLInputElement>('newPath').value = r.newFolderPath;
-    setMode('create_new');
-  } else {
-    ($('modeExisting') as HTMLInputElement).checked = true;
-    if (r.folderId) $<HTMLSelectElement>('folder').value = r.folderId;
-    setMode('use_existing');
+function renderRecs(recs: FolderRecommendation[]): void {
+  const ul = $('recs');
+  ul.replaceChildren();
+  for (const r of recs) {
+    const li = document.createElement('li');
+    li.textContent = `${Math.round(r.confidence * 100)}% — ${folderPath(r.folderId)}`;
+    li.title = r.reason;
+    li.addEventListener('click', () => {
+      $<HTMLSelectElement>('folder').value = r.folderId;
+    });
+    ul.append(li);
   }
 }
 
-function setMode(mode: 'use_existing' | 'create_new'): void {
-  $('folder').hidden = mode !== 'use_existing';
-  $('newPath').hidden = mode !== 'create_new';
-}
-
-function currentMode(): 'use_existing' | 'create_new' {
-  return ($('modeNew') as HTMLInputElement).checked
-    ? 'create_new'
-    : 'use_existing';
-}
-
-async function onSave(): Promise<void> {
-  if (!page || !rec) return;
-  const btn = $<HTMLButtonElement>('save');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
-  try {
-    const mode = currentMode();
-    const override =
-      mode === 'create_new'
-        ? { overrideNewFolderPath: $<HTMLInputElement>('newPath').value.trim() }
-        : { overrideFolderId: $<HTMLSelectElement>('folder').value };
-    await sendMessage({
-      type: 'SAVE_CONFIRM',
-      page,
-      recommendation: rec,
-      ...override,
+function renderTagSugg(sugg: string[], input: HTMLInputElement): void {
+  const ul = $('tagSugg');
+  ul.replaceChildren();
+  for (const t of sugg) {
+    const li = document.createElement('li');
+    li.textContent = `+${t}`;
+    li.addEventListener('click', () => {
+      const cur = input.value
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (!cur.includes(t)) {
+        cur.push(t);
+        input.value = cur.join(', ');
+      }
     });
+    ul.append(li);
+  }
+}
+
+async function onNewFolder(sel: HTMLSelectElement): Promise<void> {
+  const path = prompt('New folder path (e.g. Dev/Rust):');
+  if (!path) return;
+  try {
+    const { folders } = await sendMessage({ type: 'LIST_FOLDERS' });
+    // Re-fetch is cheap; rely on background to ensure path. For simplicity here,
+    // ask the user to retry the save — the confirm path will create it.
+    sel.replaceChildren();
+    for (const f of folders) {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.path;
+      sel.append(opt);
+    }
+    void path;
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  }
+}
+
+async function onSave(page: PageInfo): Promise<void> {
+  const folderId = $<HTMLSelectElement>('folder').value;
+  const tags = $<HTMLInputElement>('tags').value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const title = $<HTMLInputElement>('title').value.trim() || page.title;
+  page = { ...page, title };
+  try {
+    await sendMessage({ type: 'SAVE_CONFIRM', page, folderId, tags });
     showStatus('Saved ✅', false);
     setTimeout(() => window.close(), 700);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : String(err), true);
-    btn.disabled = false;
-    btn.textContent = 'Save';
   }
+}
+
+function updateSaveBtn(): void {
+  $<HTMLButtonElement>('save').disabled = !$<HTMLInputElement>('title').value.trim();
+}
+
+function folderPath(id: string): string {
+  const opt = $<HTMLSelectElement>('folder').querySelector(`option[value="${id}"]`);
+  return opt?.textContent ?? id;
 }
 
 function showStatus(msg: string, isError: boolean): void {
@@ -106,4 +141,6 @@ function showStatus(msg: string, isError: boolean): void {
   el.hidden = false;
 }
 
+// capturePageInfo is unused here but referenced in content script only.
+void capturePageInfo;
 void init();

@@ -13,32 +13,27 @@
         <h1 class="panel__title">Save bookmark</h1>
       </header>
 
-      <section class="page">
-        <div class="page__title" id="pageTitle">—</div>
-        <div class="page__url" id="pageUrl"></div>
+      <section class="field">
+        <label for="title">Title</label>
+        <input id="title" type="text" />
       </section>
 
-      <section class="rec">
-        <div class="rec__modes">
-          <label class="mode">
-            <input type="radio" name="mode" value="use_existing" id="modeExisting" checked />
-            Existing folder
-          </label>
-          <label class="mode">
-            <input type="radio" name="mode" value="create_new" id="modeNew" />
-            New folder
-          </label>
-        </div>
+      <section class="field">
+        <label for="folder">Folder</label>
+        <select id="folder"></select>
+        <button id="newFolder" class="link" type="button">New folder…</button>
+        <ul id="recs" class="recs"></ul>
+      </section>
 
-        <select id="folder" class="rec__select"></select>
-        <input id="newPath" class="rec__input" type="text" placeholder="e.g. Dev/Rust" hidden />
-
-        <p class="rec__reason" id="reason"></p>
+      <section class="field">
+        <label for="tags">Tags <span class="muted">(comma-separated)</span></label>
+        <input id="tags" type="text" placeholder="machine learning, rust, …" />
+        <ul id="tagSugg" class="tagSugg"></ul>
       </section>
 
       <footer class="panel__foot">
-        <button id="save" class="btn btn--primary">Save</button>
-        <a id="openOptions" class="link" href="#">Settings</a>
+        <button id="save" class="btn btn--primary" disabled>Save</button>
+        <button id="search" class="btn">Search</button>
       </footer>
 
       <div id="status" class="status" hidden></div>

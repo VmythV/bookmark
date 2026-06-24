@@ -13,143 +13,68 @@
       <section class="card card--info">
         <h2>Privacy</h2>
         <ul class="privacy">
-          <li><strong>Local embeddings:</strong> folder names, bookmark titles, and page text are turned into vectors <em>on your device</em> — they are never sent anywhere for the embedding step.</li>
-          <li><strong>What leaves your device:</strong> only the LLM re-rank / naming calls, which send the page title/URL and the names of the Top-K candidate folders to the OpenAI-compatible endpoint <em>you</em> configure below. With no API key, the extension uses a local keyword rule and sends nothing.</li>
-          <li><strong>Credentials:</strong> API keys and WebDAV/S3 secrets are stored locally in plaintext and are never uploaded by the extension.</li>
+          <li><strong>Embedding:</strong> folder names, bookmark titles, and page text are sent to <em>your</em> configured embedding endpoint only when you enable it. Off by default; with it off, recommendations use only behavior / domain / lexical signal (computed locally, nothing leaves the device).</li>
+          <li><strong>Chat (optional):</strong> used in a future iteration for natural-language search. Disabled by default.</li>
+          <li><strong>Credentials:</strong> stored locally in plaintext and never uploaded by the extension.</li>
         </ul>
       </section>
 
       <section class="card">
-        <h2>LLM (OpenAI-compatible)</h2>
+        <h2>Embedding <span class="muted">(optional, off by default)</span></h2>
+        <label class="row">
+          <input id="embedEnabled" type="checkbox" /> Enable
+        </label>
         <label>Endpoint base URL
-          <input id="llmEndpoint" type="url" placeholder="https://api.example.com/v1" />
+          <input id="embedEndpoint" type="url" placeholder="https://api.openai.com/v1" />
         </label>
         <label>API key
-          <input id="llmApiKey" type="password" placeholder="sk-…" />
+          <input id="embedKey" type="password" placeholder="sk-…" />
         </label>
         <label>Model
-          <input id="llmModel" type="text" placeholder="gpt-4o-mini" />
+          <input id="embedModel" type="text" placeholder="text-embedding-3-small" />
         </label>
-        <p class="hint">Used only for folder recommendation &amp; reorganization naming. Stored locally in plaintext, never uploaded by the extension.</p>
+        <div class="row">
+          <button id="testEmbed" class="btn">Test</button>
+          <span id="embedStatus" class="status" hidden></span>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Embedding</h2>
+        <h2>Chat <span class="muted">(optional, off by default)</span></h2>
+        <label class="row">
+          <input id="chatEnabled" type="checkbox" /> Enable
+        </label>
+        <label>Endpoint base URL
+          <input id="chatEndpoint" type="url" placeholder="https://api.openai.com/v1" />
+        </label>
+        <label>API key
+          <input id="chatKey" type="password" />
+        </label>
         <label>Model
-          <input id="embedModel" type="text" placeholder="Xenova/multilingual-e5-small" />
+          <input id="chatModel" type="text" placeholder="gpt-4o-mini" />
         </label>
-        <label>Recall Top-K
-          <input id="topK" type="number" min="1" max="50" />
-        </label>
+        <div class="row">
+          <button id="testChat" class="btn">Test</button>
+          <span id="chatStatus" class="status" hidden></span>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Backup</h2>
-        <label>Target
-          <select id="backupTarget">
-            <option value="none">None</option>
-            <option value="webdav">WebDAV</option>
-            <option value="s3">S3</option>
+        <h2>Search</h2>
+        <label>Mode
+          <select id="searchMode">
+            <option value="lexical">Lexical only (no embedding required)</option>
+            <option value="hybrid">Hybrid (lexical + vector; requires embedding)</option>
           </select>
         </label>
-        <label>Schedule
-          <select id="backupSchedule">
-            <option value="off">Off</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
+        <label>Max results
+          <input id="searchTopK" type="number" min="1" max="500" />
         </label>
-
-        <div id="webdavFields" hidden>
-          <label>WebDAV file URL
-            <input id="webdavUrl" type="url" placeholder="https://dav.example.com/bookmarks.html" />
-          </label>
-          <label>Username
-            <input id="webdavUser" type="text" />
-          </label>
-          <label>Password
-            <input id="webdavPass" type="password" />
-          </label>
-        </div>
-
-        <div id="s3Fields" hidden>
-          <label>Endpoint
-            <input id="s3Endpoint" type="url" placeholder="https://s3.us-east-1.amazonaws.com" />
-          </label>
-          <label>Region
-            <input id="s3Region" type="text" placeholder="us-east-1" />
-          </label>
-          <label>Bucket
-            <input id="s3Bucket" type="text" />
-          </label>
-          <label>Object key
-            <input id="s3Key" type="text" placeholder="bookmarks.html" />
-          </label>
-          <label>Access key ID
-            <input id="s3AccessKey" type="text" />
-          </label>
-          <label>Secret access key
-            <input id="s3Secret" type="password" />
-          </label>
-        </div>
-
-        <label>Import mode
-          <select id="importMode">
-            <option value="merge">Merge (non-destructive — into "Imported bookmarks")</option>
-            <option value="replace">Replace (clears existing — auto-backed-up first)</option>
-          </select>
-        </label>
-        <div class="row">
-          <button id="backupNow" class="btn">Backup now</button>
-          <button id="backupTest" class="btn">Test connection</button>
-          <button id="backupImport" class="btn">Import from remote</button>
-        </div>
-        <div class="row">
-          <button id="exportFile" class="btn">Export to file…</button>
-          <button id="importFile" class="btn">Import from file…</button>
-          <input id="importFileInput" type="file" accept=".html,text/html" hidden />
-        </div>
-        <p class="hint">One-way overwrite snapshot in standard HTML. The server/bucket must allow this extension's origin via CORS.</p>
-      </section>
-
-      <section class="card">
-        <h2>Index</h2>
-        <p class="hint" id="indexStatus">Checking index status…</p>
-        <div class="row">
-          <button id="buildIndex" class="btn">Build / update index</button>
-          <button id="rebuildIndex" class="btn">Clear &amp; rebuild</button>
-          <button id="cancelTask" class="btn" hidden>Cancel</button>
-        </div>
-        <div id="indexProgress" class="progress" hidden>
-          <div class="progress__bar" id="indexProgressBar"></div>
-          <span class="progress__label" id="indexProgressLabel"></span>
-        </div>
-        <p class="hint">First build downloads the embedding model (~tens of MB) from the HuggingFace CDN, then embeds your folders locally. Cached afterwards.</p>
-      </section>
-
-      <section class="card">
-        <h2>Reorganize bookmarks</h2>
-        <p class="hint">Cluster your bookmarks by similarity and propose a fresh folder structure. Preview before applying — nothing moves until you confirm, and a safety backup is taken automatically.</p>
-        <label>Scope
-          <select id="reorgScope">
-            <option value="all">All bookmarks</option>
-          </select>
-        </label>
-        <div class="row">
-          <button id="reorgBuild" class="btn">Build plan</button>
-          <button id="reorgApply" class="btn btn--primary" hidden>Apply plan</button>
-          <button id="reorgCancel" class="btn" hidden>Cancel</button>
-        </div>
-        <div id="reorgProgress" class="progress" hidden>
-          <div class="progress__bar" id="reorgProgressBar"></div>
-          <span class="progress__label" id="reorgProgressLabel"></span>
-        </div>
-        <div id="reorgPreview" class="preview" hidden></div>
       </section>
 
       <footer class="foot">
         <button id="save" class="btn btn--primary">Save settings</button>
-        <span id="status" class="status" hidden></span>
+        <span id="saved" class="status" hidden></span>
       </footer>
     </main>
     <script type="module" src="./main.ts"></script>

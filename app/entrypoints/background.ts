@@ -1,52 +1,38 @@
 /**
- * Background service worker: message router + orchestration entry.
- * See docs/detailed-design.md §2, §11.
+ * Background service worker: routes messages between UI surfaces (content,
+ * popup, search) and the controllers.
  */
 import type {
   Envelope,
   RequestMessage,
   ResponseMap,
 } from '@/lib/shared/messages';
-import { applySave, recommend } from '@/lib/controllers/saveController';
-import {
-  buildIndex,
-  isIndexed,
-  rebuildIndex,
-  startIncrementalSync,
-} from '@/lib/rag/indexer';
-import { count as vectorCount } from '@/lib/services/vectorStore';
-import {
-  backupNow,
-  exportHtml,
-  importFromRemote,
-  registerAlarmHandler,
-  syncSchedule,
-  testConnection,
-} from '@/lib/controllers/backupController';
-import { applyPlan, buildPlan } from '@/lib/reorg/plan';
-import { requestCancel, resetCancel } from '@/lib/shared/cancel';
+import { commitSave, recommendForPage } from '@/lib/controllers/saveController';
+import { recordUse, search } from '@/lib/controllers/searchController';
+import { listFolders } from '@/lib/services/bookmarks';
+import { getConfig, setConfig } from '@/lib/services/storage';
+import * as embedding from '@/lib/providers/embedding';
+import * as chat from '@/lib/providers/chat';
 
 export default defineBackground(() => {
-  // Keep the folder index in sync with bookmark changes.
-  startIncrementalSync();
-  // Scheduled backups.
-  registerAlarmHandler();
-  void syncSchedule();
-
-  chrome.runtime.onMessage.addListener((message: RequestMessage, _sender, sendResponse) => {
-    // Ignore internal embedder traffic; embedderClient handles those.
-    if ((message as { target?: string }).target) return;
-
-    handle(message)
-      .then((data) => sendResponse({ ok: true, data } satisfies Envelope<unknown>))
-      .catch((err: unknown) =>
-        sendResponse({
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-        } satisfies Envelope<unknown>),
-      );
-    return true;
-  });
+  // Wire the omnibox keyword 'sb' to dispatch a query event the search UI can
+  // listen for. Currently the omnibox just opens the popup; a future sidebar
+  // can use this event.
+  chrome.runtime.onMessage.addListener(
+    (message: RequestMessage, _sender, sendResponse) => {
+      handle(message)
+        .then((data) =>
+          sendResponse({ ok: true, data } satisfies Envelope<unknown>),
+        )
+        .catch((err: unknown) =>
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          } satisfies Envelope<unknown>),
+        );
+      return true;
+    },
+  );
 });
 
 async function handle(
@@ -56,74 +42,36 @@ async function handle(
     case 'PING':
       return { ok: true };
 
+    case 'LIST_FOLDERS':
+      return { folders: await listFolders() };
+
+    case 'GET_CONFIG':
+      return { config: await getConfig() };
+
+    case 'SET_CONFIG':
+      return { config: await setConfig(message.patch) };
+
+    case 'TEST_PROVIDER': {
+      try {
+        if (message.which === 'embedding') await embedding.test((await getConfig()).embedding);
+        else await chat.test((await getConfig()).chat);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
     case 'SAVE_REQUEST':
-      return { recommendation: await recommend(message.page) };
+      return await recommendForPage(message.page);
 
     case 'SAVE_CONFIRM':
-      return applySave(message.page, message.recommendation, {
-        folderId: message.overrideFolderId,
-        newFolderPath: message.overrideNewFolderPath,
-      });
+      return commitSave(message.page, message.folderId, message.tags);
 
-    case 'INDEX_BUILD':
-      resetCancel();
-      return buildIndex((p) => {
-        // Broadcast progress to any open extension page (e.g. options).
-        void chrome.runtime
-          .sendMessage({ target: 'index-progress', ...p })
-          .catch(() => {
-            /* no receiver open; ignore */
-          });
-      });
-
-    case 'INDEX_REBUILD':
-      resetCancel();
-      return rebuildIndex((p) => {
-        void chrome.runtime
-          .sendMessage({ target: 'index-progress', ...p })
-          .catch(() => {
-            /* no receiver */
-          });
-      });
-
-    case 'INDEX_STATUS':
-      return { indexed: await isIndexed(), folderCount: await vectorCount('folder') };
-
-    case 'CANCEL_TASK':
-      requestCancel();
-      return { ok: true };
-
-    case 'BACKUP_NOW':
-      return backupNow();
-
-    case 'EXPORT_HTML':
-      return { html: await exportHtml() };
-
-    case 'BACKUP_TEST':
-      await testConnection();
-      return { ok: true };
-
-    case 'BACKUP_IMPORT':
-      return importFromRemote(message.html, message.mode);
-
-    case 'SCHEDULE_SYNC':
-      await syncSchedule();
-      return { ok: true };
-
-    case 'REORG_BUILD_PLAN':
-      resetCancel();
-      return {
-        plan: await buildPlan(message.scope, (p) => {
-          void chrome.runtime
-            .sendMessage({ target: 'reorg-progress', ...p })
-            .catch(() => {
-              /* no receiver */
-            });
-        }),
-      };
-
-    case 'REORG_APPLY':
-      return applyPlan(message.plan);
+    case 'SEARCH': {
+      const results = await search(message.query, message.topK);
+      results.slice(0, 3).forEach((r) => recordUse(r.id));
+      return { results };
+    }
 
     default: {
       const _exhaustive: never = message;

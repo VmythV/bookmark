@@ -1,13 +1,13 @@
 /**
- * Core data models. See docs/detailed-design.md §4.
+ * Core data models. See docs/detailed-design.md §4 (kept aligned across versions).
  */
 
-/** A native bookmark node, mirrored from chrome.bookmarks. */
+/** A native chrome.bookmarks node (mirror). */
 export interface BookmarkNode {
   id: string;
   parentId?: string;
   title: string;
-  /** undefined => this node is a folder */
+  /** undefined => folder */
   url?: string;
   index?: number;
   children?: BookmarkNode[];
@@ -17,106 +17,129 @@ export interface BookmarkNode {
 export interface PageInfo {
   url: string;
   title: string;
-  /** Selected text, if any. */
   selectionText?: string;
-  /** <meta name="description"> or og:description. */
   description?: string;
 }
 
-/** A vector index entry persisted in IndexedDB. */
-export interface VectorEntry {
-  key: string; // bookmark/folder id
-  kind: 'folder' | 'bookmark';
-  vector: number[]; // normalized embedding (cosine == dot product)
-  textHash: string; // hash of the source text, to skip re-embedding unchanged nodes
-  updatedAt: number; // epoch ms, stamped by the caller
-}
-
-/** A candidate folder presented to the LLM during re-ranking. */
+/** A candidate folder presented to the user for a recommendation. */
 export interface FolderCandidate {
   id: string;
   /** Full path, e.g. "Dev/Rust". */
   path: string;
-  /** A few sample child titles to give the LLM context. */
-  sampleTitles: string[];
 }
 
-/** Structured recommendation returned by the save flow (LLM or fallback). */
-export interface SaveRecommendation {
-  action: 'use_existing' | 'create_new';
-  /** Set when action === 'use_existing'. */
-  folderId?: string;
-  /** Set when action === 'create_new', e.g. "Dev/Rust". */
-  newFolderPath?: string;
-  confidence: number; // 0..1
+/** A recommendation produced for the save flow. */
+export interface FolderRecommendation {
+  folderId: string;
+  /** 0..1 confidence from the ranker (vector score if available, else lexical). */
+  confidence: number;
+  /** Component scores for transparency / debugging. */
+  scores: {
+    behavior: number;
+    domain: number;
+    lexical: number;
+    vector: number;
+    prefer: number;
+  };
   reason: string;
 }
 
-/** Reorganization scope. */
-export type ReorgScope =
-  | { kind: 'all' }
-  | { kind: 'folder'; folderId: string };
-
-/** One proposed cluster in a reorg plan. */
-export interface ReorgCluster {
-  suggestedFolderName: string;
-  /** Full path under the reorg root, e.g. "Reorganized/Dev". */
-  suggestedPath: string;
-  bookmarkIds: string[];
-  /** A few member titles, for preview. */
-  sampleTitles: string[];
+/** A bookmark in our own IndexedDB store (mirror + extras). */
+export interface StoredBookmark {
+  /** chrome.bookmarks id. */
+  id: string;
+  url: string;
+  title: string;
+  /** chrome bookmark parent id. */
+  folderId: string;
+  /** chrome bookmark folder path, e.g. "Dev/Rust". */
+  folderPath: string;
+  tags: string[];
+  /** Optional cloud embedding (unit-normalized). null when not yet embedded. */
+  embedding: number[] | null;
+  /** Hash of the title+url+folder path; if unchanged, embedding is reused. */
+  embeddingTextHash: string | null;
+  /** Times the user picked this bookmark from search results. */
+  useCount: number;
+  /** epoch ms */
+  lastUsed: number | null;
+  savedAt: number;
+  /** Whether the user explicitly chose this folder (bumps prefer score). */
+  preferFolder: boolean;
 }
 
-/** A reorganization plan (preview before apply). */
-export interface ReorgPlan {
-  clusters: ReorgCluster[];
-  /** Bookmark ids HDBSCAN could not classify. */
-  noise: string[];
-  /** Total bookmarks considered. */
-  total: number;
-  generatedAt: number;
+/** Weights for the three-or-four-lane ranker. */
+export interface RankerWeights {
+  behavior: number;
+  domain: number;
+  lexical: number;
+  vector: number;
+  prefer: number;
 }
 
-/** Persisted configuration (storage.local). Plaintext this iteration, local-only. */
-export interface AppConfig {
-  llm: {
-    /** e.g. https://api.example.com/v1 */
+/** Configuration for an OpenAI-compatible embedding endpoint. */
+export interface EmbeddingConfig {
+  enabled: boolean;
+  endpoint: string;
+  apiKey: string;
+  /** e.g. 'text-embedding-3-small', 'text-embedding-v3' (Qwen), multilingual-e5-large via OpenAI gateway. */
+  model: string;
+}
+
+/** Configuration for an OpenAI-compatible chat endpoint. */
+export interface ChatConfig {
+  enabled: boolean;
+  endpoint: string;
+  apiKey: string;
+  /** e.g. 'gpt-4o-mini', 'deepseek-chat', 'qwen-plus' */
+  model: string;
+}
+
+/** Backup configuration (WebDAV / S3 one-way overwrite snapshot). */
+export interface BackupConfig {
+  target: 'none' | 'webdav' | 's3';
+  schedule: 'off' | 'daily' | 'weekly';
+  webdav?: { url: string; username: string; password: string };
+  s3?: {
     endpoint: string;
-    apiKey: string;
-    model: string;
+    region: string;
+    bucket: string;
+    key: string;
+    accessKeyId: string;
+    secretAccessKey: string;
   };
-  embedding: {
-    /** default 'Xenova/multilingual-e5-small' */
-    model: string;
+}
+
+export interface AppConfig {
+  embedding: EmbeddingConfig;
+  chat: ChatConfig;
+  recommend: {
+    weights: RankerWeights;
+    topK: number;
   };
-  recall: {
-    /** default 10 */
+  search: {
+    /** 'lexical' (no vector) or 'hybrid' (vector + lexical with RRF). */
+    mode: 'lexical' | 'hybrid';
     topK: number;
   };
   backup: BackupConfig;
 }
 
-export interface BackupConfig {
-  target: 'none' | 'webdav' | 's3';
-  schedule: 'off' | 'daily' | 'weekly';
-  webdav?: {
-    url: string;
-    username: string;
-    password: string;
-  };
-  s3?: {
-    endpoint: string;
-    region: string;
-    bucket: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    key: string;
-  };
-}
-
 export const DEFAULT_CONFIG: AppConfig = {
-  llm: { endpoint: '', apiKey: '', model: '' },
-  embedding: { model: 'Xenova/multilingual-e5-small' },
-  recall: { topK: 10 },
+  embedding: { enabled: false, endpoint: '', apiKey: '', model: '' },
+  chat: { enabled: false, endpoint: '', apiKey: '', model: '' },
+  recommend: {
+    weights: { behavior: 0.1, domain: 0.25, lexical: 0.2, vector: 0.4, prefer: 0.05 },
+    topK: 5,
+  },
+  search: { mode: 'lexical', topK: 50 },
   backup: { target: 'none', schedule: 'off' },
+};
+
+export const NO_EMBEDDING_WEIGHTS: RankerWeights = {
+  behavior: 0.2,
+  domain: 0.4,
+  lexical: 0.3,
+  vector: 0,
+  prefer: 0.1,
 };

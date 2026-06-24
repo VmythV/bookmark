@@ -1,85 +1,74 @@
 /**
- * Save flow controller. See docs/detailed-design.md §5.
- *
- * M3: full pipeline — local recall (Top-K) → LLM re-rank (structured output).
- * Falls back to a keyword rule when the LLM is unconfigured/offline/errors, and
- * to the default folder when the index isn't built yet.
+ * Save flow: rank candidate folders for a page and (when embedding provider is
+ * configured) suggest tags. See docs/detailed-design.md §5.
  */
-import type {
-  FolderCandidate,
-  PageInfo,
-  SaveRecommendation,
-} from '../shared/types';
-import {
-  createBookmark,
-  defaultParentId,
-  ensureFolderPath,
-} from '../services/bookmarks';
+import { listFolders, listStored, saveWithTags, setEmbedding } from '../services/bookmarks';
+import { hostOf, textHash } from '../shared/text';
+import { rankFolders } from '../recommend/rank';
+import { suggestTags } from '../recommend/tags';
+import * as embedding from '../providers/embedding';
 import { getConfig } from '../services/storage';
-import { recallFolders } from '../rag/recall';
-import { isIndexed } from '../rag/indexer';
-import { recommendFolder } from '../llm/provider';
-import { recommendByKeywords } from '../llm/fallback';
+import { normalize } from '../providers/embedding';
+import type { FolderRecommendation, PageInfo } from '../shared/types';
 
-/**
- * Produce a folder recommendation for a page:
- * recall Top-K → LLM re-rank → keyword fallback → default folder.
- */
-export async function recommend(page: PageInfo): Promise<SaveRecommendation> {
-  let candidates: FolderCandidate[] = [];
+export async function recommendForPage(
+  page: PageInfo,
+): Promise<{ recommendations: FolderRecommendation[]; suggestedTags: string[] }> {
+  const cfg = await getConfig();
+  const bookmarks = await listStored();
+  const folders = await listFolders();
+  const folderPaths = new Map(folders.map((f) => [f.id, f.path]));
 
-  try {
-    if (await isIndexed()) {
-      const cfg = await getConfig();
-      candidates = await recallFolders(page, cfg.recall.topK);
-
-      if (candidates.length > 0) {
-        // Try the LLM re-rank first.
-        try {
-          return await recommendFolder(page, candidates, cfg.llm);
-        } catch (err) {
-          console.warn('[smart-bookmark] LLM re-rank failed, using keyword fallback', err);
-          return recommendByKeywords(page, candidates);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[smart-bookmark] recommend failed, falling back', err);
-    if (candidates.length > 0) return recommendByKeywords(page, candidates);
+  // Optional: page embedding for the vector lane. Failures are silent.
+  let pageEmbedding: number[] | null = null;
+  if (embedding.isConfigured(cfg.embedding)) {
+    pageEmbedding = await embedding.embedOne(
+      [page.title, page.description, hostOf(page.url)]
+        .filter(Boolean)
+        .join(' • '),
+      cfg.embedding,
+    );
   }
 
-  const folderId = await defaultParentId();
-  return {
-    action: 'use_existing',
-    folderId,
-    confidence: 0,
-    reason: 'Index not ready — saved to the default folder. Build the index in Settings.',
-  };
+  const recommendations = rankFolders({
+    page,
+    bookmarks,
+    pageEmbedding,
+    weights: cfg.recommend.weights,
+    folderPaths,
+    topK: cfg.recommend.topK,
+  });
+
+  // Tag suggestions: pure (embedding-free) + optional chat refinement later.
+  const suggestedTags = suggestTags(page, bookmarks);
+  return { recommendations, suggestedTags };
 }
 
 /**
- * Apply a (possibly user-overridden) recommendation: resolve the target folder,
- * create it if needed, and write the bookmark.
+ * Persist the bookmark to native chrome.bookmarks and mirror into our store
+ * with the chosen folder + tags. If the embedding provider is configured,
+ * also embed and cache the page in the background (best-effort, non-blocking).
  */
-export async function applySave(
+export async function commitSave(
   page: PageInfo,
-  rec: SaveRecommendation,
-  override?: { folderId?: string; newFolderPath?: string },
-): Promise<{ createdId: string }> {
-  let parentId: string;
-
-  if (override?.folderId) {
-    parentId = override.folderId;
-  } else if (override?.newFolderPath) {
-    parentId = await ensureFolderPath(override.newFolderPath);
-  } else if (rec.action === 'create_new' && rec.newFolderPath) {
-    parentId = await ensureFolderPath(rec.newFolderPath);
-  } else if (rec.folderId) {
-    parentId = rec.folderId;
-  } else {
-    parentId = await defaultParentId();
+  folderId: string,
+  tags: string[],
+): Promise<{ id: string }> {
+  const id = await saveWithTags(folderId, page.title || page.url, page.url, tags);
+  const cfg = await getConfig();
+  if (embedding.isConfigured(cfg.embedding)) {
+    void (async () => {
+      try {
+        const text = [page.title, page.description, hostOf(page.url)]
+          .filter(Boolean)
+          .join(' • ');
+        const hash = textHash(text);
+        const [vec] = await embedding.embed([text], cfg.embedding);
+        if (vec) await setEmbedding(id, normalize(vec), hash);
+      } catch (err) {
+        console.warn('[smart-bookmark] background embedding failed', err);
+      }
+    })();
   }
-
-  const node = await createBookmark(parentId, page.title || page.url, page.url);
-  return { createdId: node.id };
+  return { id };
 }

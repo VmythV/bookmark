@@ -3,6 +3,34 @@
 Tracking the build against the milestones in [detailed-design.md](./detailed-design.md).
 Status: `[ ]` todo · `[~]` in progress · `[x]` done.
 
+## V2 rewrite (current) — lighter, provider-separated
+
+Rationale: the V1 local-RAG approach (Transformers.js in an offscreen document +
+HNSW + HDBSCAN reorg) was heavy, slow, and fragile under MV3 (module-worker
+crashes, ONNX wasm CDN blocked by CSP). V2 follows the howoii/SmartBookmark
+shape: cloud-only **embedding** and **chat** providers configured independently,
+a multi-lane folder recommender that works with zero network, tags, and
+semantic search.
+
+- [x] Remove V1 heavy modules (rag/offscreen/Transformers.js, reorg/HDBSCAN, local HNSW vectorStore, aws4fetch); −deps, bundle 630 KB → ~59 KB
+- [x] Config: independent `embedding` + `chat` providers, each with its own enable flag
+- [x] Own IndexedDB store (`store/db.ts`) mirroring chrome.bookmarks + tags/embedding/usage
+- [x] Providers: `providers/embedding.ts` (cloud /embeddings), `providers/chat.ts` (cloud /chat/completions, json_object mode)
+- [x] Recommender: behavior + domain + lexical + optional vector + prefer, weighted, degrades to no-embedding weights
+- [x] Tag suggestions (embedding-free heuristic)
+- [x] Search: lexical + optional vector with RRF fusion (`search/hybrid.ts`)
+- [x] Background message router; popup (title/folder/tags/recommendations) ; options (embedding + chat cards + test buttons)
+- [x] Floating button retained (opens popup) + Ctrl+B quick-save command
+- [x] Unit tests: text tokenization (CJK), ranker, hybrid search (18 passing)
+- [ ] **Re-add backup** (WebDAV/S3 + HTML import/export) — removed in cleanup, planned next
+- [ ] Quick-search surface (Ctrl+K) + omnibox `sb`
+- [ ] Natural-language search via chat provider (M8)
+- [ ] Live runtime verification in Chrome
+
+---
+
+## V1 history (superseded)
+
 ## M1 — Scaffold & Bookmark CRUD (no AI) ✅
 
 - [x] Initialize WXT + TypeScript project (`wxt.config.ts`, `package.json`)
