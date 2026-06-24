@@ -87,6 +87,15 @@ export interface ListFoldersRes {
   folders: Array<{ id: string; path: string }>;
 }
 
+export interface EnsureFolderMsg {
+  type: 'ENSURE_FOLDER';
+  /** Slash-separated path, e.g. "Dev/Rust". */
+  path: string;
+}
+export interface EnsureFolderRes {
+  folderId: string;
+}
+
 // ───── Union / map ─────
 
 export type RequestMessage =
@@ -97,7 +106,8 @@ export type RequestMessage =
   | GetConfigMsg
   | SetConfigMsg
   | TestProviderMsg
-  | ListFoldersMsg;
+  | ListFoldersMsg
+  | EnsureFolderMsg;
 
 export interface ResponseMap {
   SAVE_REQUEST: SaveRequestRes;
@@ -108,6 +118,7 @@ export interface ResponseMap {
   SET_CONFIG: SetConfigRes;
   TEST_PROVIDER: TestProviderRes;
   LIST_FOLDERS: ListFoldersRes;
+  ENSURE_FOLDER: EnsureFolderRes;
 }
 
 export type Envelope<T> =

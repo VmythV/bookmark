@@ -29,11 +29,11 @@ index in IndexedDB is a derived cache that can be rebuilt at any time.
 
 ## Tech Stack
 
-- [WXT](https://wxt.dev) + TypeScript — cross-browser extension framework (targeting Chrome/Edge, MV3).
-- [Domicile](https://github.com/kyrillosishak/Domicile) skeleton — in-browser embeddings (Transformers.js) + HNSW + IndexedDB.
-- `multilingual-e5-small` — multilingual local embedding model.
-- HDBSCAN — automatic clustering for reorganization.
-- OpenAI-compatible `/v1/chat/completions` — cloud LLM re-ranking & naming.
+- [WXT](https://wxt.dev) + TypeScript — cross-browser extension framework (Chrome/Edge, MV3).
+- [Tailwind CSS v4](https://tailwindcss.com) + [DaisyUI v5](https://daisyui.com) — UI component styling (blue theme).
+- Own IndexedDB store mirroring `chrome.bookmarks` with tags/embedding/usage.
+- Independent **embedding** and **chat** providers (OpenAI-compatible `/embeddings` and `/chat/completions`), both optional.
+- Multi-lane folder recommender (behavior + domain + lexical + optional vector) that works offline.
 
 ## Documentation
 

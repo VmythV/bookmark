@@ -9,7 +9,7 @@ import type {
 } from '@/lib/shared/messages';
 import { commitSave, recommendForPage } from '@/lib/controllers/saveController';
 import { recordUse, search } from '@/lib/controllers/searchController';
-import { listFolders } from '@/lib/services/bookmarks';
+import { ensureFolderPath, listFolders } from '@/lib/services/bookmarks';
 import { getConfig, setConfig } from '@/lib/services/storage';
 import * as embedding from '@/lib/providers/embedding';
 import * as chat from '@/lib/providers/chat';
@@ -44,6 +44,9 @@ async function handle(
 
     case 'LIST_FOLDERS':
       return { folders: await listFolders() };
+
+    case 'ENSURE_FOLDER':
+      return { folderId: await ensureFolderPath(message.path) };
 
     case 'GET_CONFIG':
       return { config: await getConfig() };

@@ -1,42 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="smartbookmark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Bookmark</title>
-    <link rel="stylesheet" href="./style.css" />
   </head>
-  <body>
-    <main class="panel">
-      <header class="panel__head">
-        <span class="panel__icon">🔖</span>
-        <h1 class="panel__title">Save bookmark</h1>
+  <body class="bg-base-100 text-base-content">
+    <main class="w-[360px] p-4 flex flex-col gap-3">
+      <header class="flex items-center gap-2 pb-2 border-b border-base-300">
+        <span class="text-xl">🔖</span>
+        <h1 class="font-semibold text-base grow">Save bookmark</h1>
+        <button id="openSettings" class="btn btn-ghost btn-xs" title="Settings">⚙️</button>
       </header>
 
-      <section class="field">
-        <label for="title">Title</label>
-        <input id="title" type="text" />
-      </section>
+      <label class="form-control">
+        <span class="label-text text-xs opacity-70 mb-1">Title</span>
+        <input id="title" type="text" class="input input-bordered input-sm w-full" />
+      </label>
 
-      <section class="field">
-        <label for="folder">Folder</label>
-        <select id="folder"></select>
-        <button id="newFolder" class="link" type="button">New folder…</button>
-        <ul id="recs" class="recs"></ul>
-      </section>
+      <label class="form-control">
+        <span class="label-text text-xs opacity-70 mb-1">Folder</span>
+        <select id="folder" class="select select-bordered select-sm w-full"></select>
+      </label>
+      <div id="recs" class="flex flex-wrap gap-1.5"></div>
+      <button id="newFolder" class="link link-primary text-xs self-start" type="button">+ New folder…</button>
 
-      <section class="field">
-        <label for="tags">Tags <span class="muted">(comma-separated)</span></label>
-        <input id="tags" type="text" placeholder="machine learning, rust, …" />
-        <ul id="tagSugg" class="tagSugg"></ul>
-      </section>
+      <label class="form-control">
+        <span class="label-text text-xs opacity-70 mb-1">Tags <span class="opacity-50">(comma-separated)</span></span>
+        <input id="tags" type="text" placeholder="machine learning, rust, …" class="input input-bordered input-sm w-full" />
+      </label>
+      <div id="tagSugg" class="flex flex-wrap gap-1.5"></div>
 
-      <footer class="panel__foot">
-        <button id="save" class="btn btn--primary" disabled>Save</button>
-        <button id="search" class="btn">Search</button>
-      </footer>
+      <div class="flex gap-2 pt-1">
+        <button id="save" class="btn btn-primary btn-sm grow" disabled>Save</button>
+      </div>
 
-      <div id="status" class="status" hidden></div>
+      <div id="status" class="text-xs" hidden></div>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>
