@@ -6,18 +6,21 @@ import type {
   Envelope,
   RequestMessage,
   ResponseMap,
+  ReorgClientMsg,
+  ReorgServerMsg,
 } from '@/lib/shared/messages';
+import { REORG_PORT } from '@/lib/shared/messages';
 import { commitSave, recommendForPage } from '@/lib/controllers/saveController';
 import { recordUse, search } from '@/lib/controllers/searchController';
 import { ensureFolderPath, listFolders } from '@/lib/services/bookmarks';
 import { getConfig, setConfig } from '@/lib/services/storage';
 import * as embedding from '@/lib/providers/embedding';
 import * as chat from '@/lib/providers/chat';
+import { buildReorgPlan } from '@/lib/reorg/plan';
+import { applyReorg } from '@/lib/reorg/apply';
+import { CancelledError, newToken } from '@/lib/shared/cancel';
 
 export default defineBackground(() => {
-  // Wire the omnibox keyword 'sb' to dispatch a query event the search UI can
-  // listen for. Currently the omnibox just opens the popup; a future sidebar
-  // can use this event.
   chrome.runtime.onMessage.addListener(
     (message: RequestMessage, _sender, sendResponse) => {
       handle(message)
@@ -33,6 +36,46 @@ export default defineBackground(() => {
       return true;
     },
   );
+
+  // Long-lived Port for the reorganization flow (progress + cancel). Separate
+  // from the request/response router above.
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== REORG_PORT) return;
+    const token = newToken();
+    const post = (m: ReorgServerMsg) => {
+      try {
+        port.postMessage(m);
+      } catch {
+        /* port closed */
+      }
+    };
+    port.onDisconnect.addListener(() => {
+      token.cancelled = true;
+    });
+    port.onMessage.addListener((msg: ReorgClientMsg) => {
+      if (msg.cmd === 'cancel') {
+        token.cancelled = true;
+        return;
+      }
+      if (msg.cmd === 'analyze') {
+        buildReorgPlan({ token, onProgress: (progress) => post({ kind: 'progress', progress }) })
+          .then((plan) => post({ kind: 'plan', plan }))
+          .catch((err: unknown) =>
+            post(
+              err instanceof CancelledError
+                ? { kind: 'cancelled' }
+                : { kind: 'error', error: err instanceof Error ? err.message : String(err) },
+            ),
+          );
+      } else if (msg.cmd === 'apply') {
+        applyReorg(msg.input)
+          .then((result) => post({ kind: 'applied', result }))
+          .catch((err: unknown) =>
+            post({ kind: 'error', error: err instanceof Error ? err.message : String(err) }),
+          );
+      }
+    });
+  });
 });
 
 async function handle(

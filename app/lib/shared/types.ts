@@ -11,6 +11,8 @@ export interface BookmarkNode {
   url?: string;
   index?: number;
   children?: BookmarkNode[];
+  /** epoch ms the node was added (present at runtime from chrome.bookmarks). */
+  dateAdded?: number;
 }
 
 /** Information captured from the current page when saving. */
@@ -122,6 +124,19 @@ export interface AppConfig {
     mode: 'lexical' | 'hybrid';
     topK: number;
   };
+  /** Thresholds for the bookmark reorganization ("Organize") flow. */
+  reorg: {
+    /** A relocate target folder must reach at least this confidence. */
+    minConfidence: number;
+    /** ...and beat the bookmark's current folder by at least this margin. */
+    minMargin: number;
+    /** Best-folder confidence below this => the bookmark is "homeless". */
+    homelessBelow: number;
+    /** Cosine link threshold when clustering homeless bookmarks. */
+    clusterThreshold: number;
+    /** Minimum members for a cluster to become a proposed new folder. */
+    minClusterSize: number;
+  };
   backup: BackupConfig;
 }
 
@@ -133,6 +148,13 @@ export const DEFAULT_CONFIG: AppConfig = {
     topK: 5,
   },
   search: { mode: 'lexical', topK: 50 },
+  reorg: {
+    minConfidence: 0.45,
+    minMargin: 0.12,
+    homelessBelow: 0.35,
+    clusterThreshold: 0.78,
+    minClusterSize: 3,
+  },
   backup: { target: 'none', schedule: 'off' },
 };
 
@@ -142,4 +164,18 @@ export const NO_EMBEDDING_WEIGHTS: RankerWeights = {
   lexical: 0.3,
   vector: 0,
   prefer: 0.1,
+};
+
+/**
+ * Weights for the reorganization ranker. behavior=0 because synced bookmarks'
+ * savedAt is meaningless under the 24h half-life; prefer=0 so we don't entrench
+ * the very placements we're re-evaluating. When no embedding is available,
+ * rankFolders drops the vector lane and renormalizes domain/lexical.
+ */
+export const REORG_WEIGHTS: RankerWeights = {
+  behavior: 0,
+  domain: 0.4,
+  lexical: 0.3,
+  vector: 0.3,
+  prefer: 0,
 };

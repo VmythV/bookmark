@@ -14,6 +14,7 @@ function withDefaults(stored: Partial<AppConfig> | undefined): AppConfig {
     chat: { ...DEFAULT_CONFIG.chat, ...stored.chat },
     recommend: { ...DEFAULT_CONFIG.recommend, ...stored.recommend },
     search: { ...DEFAULT_CONFIG.search, ...stored.search },
+    reorg: { ...DEFAULT_CONFIG.reorg, ...stored.reorg },
     backup: { ...DEFAULT_CONFIG.backup, ...stored.backup },
   };
 }

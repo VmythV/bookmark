@@ -3,6 +3,8 @@ import { sendMessage } from '@/lib/shared/messages';
 import { getConfig, setConfig } from '@/lib/services/storage';
 import { listStored } from '@/lib/services/bookmarks';
 import type { AppConfig } from '@/lib/shared/types';
+import { icon, type IconName } from '@/lib/shared/icons';
+import { initOrganize } from './organize';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -11,7 +13,17 @@ const $ = <T extends HTMLElement>(id: string): T => {
 };
 const v = (id: string): string => $<HTMLInputElement>(id).value.trim();
 
+/** Replaces every [data-icon] placeholder with its inline SVG. */
+function hydrateIcons(): void {
+  for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) {
+    const name = el.dataset.icon as IconName;
+    el.insertAdjacentHTML('afterbegin', icon(name));
+  }
+  $('save').innerHTML = `${icon('check')}<span>Save settings</span>`;
+}
+
 async function init(): Promise<void> {
+  hydrateIcons();
   setupNav();
   const cfg = await getConfig();
   loadEmbedding(cfg);
@@ -23,6 +35,8 @@ async function init(): Promise<void> {
   $('save').addEventListener('click', () => void save());
   $('testEmbed').addEventListener('click', () => void test('embedding'));
   $('testChat').addEventListener('click', () => void test('chat'));
+
+  void initOrganize();
 }
 
 function setupNav(): void {
@@ -31,17 +45,12 @@ function setupNav(): void {
   const show = (name: string) => {
     for (const s of sections) s.classList.toggle('hidden', s.dataset.section !== name);
     for (const it of items) it.classList.toggle('active', it.dataset.section === name);
-    // Hide the floating Save button on non-config sections.
+    // Show the save bar only on config sections.
     const configSections = ['embedding', 'chat', 'search'];
-    $('save').parentElement!.style.display = configSections.includes(name)
-      ? 'flex'
-      : 'none';
+    $('saveBar').hidden = !configSections.includes(name);
   };
   for (const it of items) {
-    it.addEventListener('click', (e) => {
-      e.preventDefault();
-      show(it.dataset.section!);
-    });
+    it.addEventListener('click', () => show(it.dataset.section!));
   }
   show('overview');
 }
@@ -91,7 +100,7 @@ async function save(): Promise<void> {
     },
   });
   await loadOverview(cfg);
-  flash('Saved ✅');
+  flash('Saved');
 }
 
 async function test(which: 'embedding' | 'chat'): Promise<void> {
@@ -102,8 +111,8 @@ async function test(which: 'embedding' | 'chat'): Promise<void> {
   try {
     const res = await sendMessage({ type: 'TEST_PROVIDER', which });
     if (res.ok) {
-      el.textContent = 'OK ✅';
-      el.className = 'text-sm text-success';
+      el.innerHTML = `${icon('check')}<span>Connected</span>`;
+      el.className = 'text-sm text-success inline-flex items-center gap-1.5';
     } else {
       el.textContent = `Failed: ${res.error ?? 'unknown'}`;
       el.className = 'text-sm text-error';
@@ -116,9 +125,9 @@ async function test(which: 'embedding' | 'chat'): Promise<void> {
 
 function flash(msg: string): void {
   const el = $('saved');
-  el.textContent = msg;
+  el.innerHTML = `${icon('check')}<span>${msg}</span>`;
   setTimeout(() => {
-    el.textContent = '';
+    el.innerHTML = '';
   }, 1500);
 }
 
